@@ -1,0 +1,6 @@
+{
+  "name": "Nude Trends",
+  "description": "A high-performance video discovery platform featuring streaming trend analysis and runway streams.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
