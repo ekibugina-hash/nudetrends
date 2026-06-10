@@ -1,18 +1,15 @@
-import React, { useState } from 'react';
+"use client";
+
+import React, { useState, useEffect } from 'react';
 import { 
   Compass, 
   TrendingUp, 
   Search, 
   UploadCloud, 
-  Info, 
   CheckCircle2, 
   MessageSquare, 
-  ChevronRight, 
   ThumbsUp, 
-  User, 
   Share2, 
-  CornerDownRight, 
-  HelpCircle,
   VideoOff,
   Play
 } from 'lucide-react';
@@ -20,7 +17,7 @@ import { Video, Comment } from './types';
 import { initialVideos, initialComments } from './data';
 import VideoPlayer from './components/VideoPlayer';
 
-export default function App() {
+export default function Home() {
   const [videos, setVideos] = useState<Video[]>(initialVideos);
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [activeView, setActiveView] = useState<'landing' | 'watch'>('landing');
@@ -29,9 +26,63 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [commentText, setCommentText] = useState('');
   const [commentName, setCommentName] = useState('My Nickname');
+  const [isClient, setIsClient] = useState(false);
   
   // Modals visibility
   const [notification, setNotification] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newVideoTitle, setNewVideoTitle] = useState('');
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [newVideoCategory, setNewVideoCategory] = useState('All Leaks');
+  const [newVideoDesc, setNewVideoDesc] = useState('');
+  const [newVideoCreator, setNewVideoCreator] = useState('Self Upload');
+
+  // Cloudflare R2 Upload states
+  const [uploadType, setUploadType] = useState<'file' | 'url'>('file');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // SSR-safe loading of localstorage videos & query parameters after mounting
+  useEffect(() => {
+    setIsClient(true);
+    
+    // Load custom videos from localStorage
+    const saved = localStorage.getItem('nude_trends_custom_videos');
+    let loadedCustomVideos: Video[] = [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        loadedCustomVideos = parsed.filter((v: Video) => !initialVideos.some(iv => iv.id === v.id));
+        setVideos([...initialVideos, ...loadedCustomVideos]);
+      } catch (e) {
+        console.error('Error parsing custom videos from localStorage:', e);
+      }
+    }
+
+    // Load active watch video from query parameters
+    const params = new URLSearchParams(window.location.search);
+    const watchId = params.get('watch');
+    if (watchId) {
+      const allVideos = [...initialVideos, ...loadedCustomVideos];
+      const matchedVideo = allVideos.find(v => v.id === watchId);
+      if (matchedVideo) {
+        setActiveVideo(matchedVideo);
+        setActiveView('watch');
+      }
+    }
+  }, []);
+
+  // Sync state back to window URL query parameters (only runs on the client)
+  useEffect(() => {
+    if (!isClient) return;
+    const url = new URL(window.location.href);
+    if (activeView === 'watch' && activeVideo) {
+      url.searchParams.set('watch', activeVideo.id);
+    } else {
+      url.searchParams.delete('watch');
+    }
+    window.history.pushState({}, '', url.pathname + url.search);
+  }, [activeView, activeVideo, isClient]);
 
   // Filter categorization categories
   const categories = [
@@ -89,9 +140,113 @@ export default function App() {
     triggerNotification("Copied stream link to clipboard!");
   };
 
+  const handleAddCustomVideo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVideoTitle.trim()) {
+      triggerNotification('Please enter a video title.');
+      return;
+    }
+
+    let finalVideoUrl = newVideoUrl.trim();
+
+    if (uploadType === 'file') {
+      if (!selectedFile) {
+        triggerNotification('Please select a video file.');
+        return;
+      }
+
+      setIsUploading(true);
+      triggerNotification('Uploading video to Cloudflare R2...');
+
+      try {
+        // 1. Get presigned upload URL from API route
+        const res = await fetch('/api/get-presigned-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName: selectedFile.name,
+            fileType: selectedFile.type,
+          }),
+        });
+
+        if (!res.ok) {
+          const errorMsg = await res.json();
+          throw new Error(errorMsg.error || 'Failed to request R2 credentials');
+        }
+
+        const { uploadUrl, publicUrl } = await res.json();
+
+        // 2. Upload the file binary directly using HTTP PUT
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': selectedFile.type,
+          },
+          body: selectedFile,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Direct binary stream upload failed.');
+        }
+
+        finalVideoUrl = publicUrl;
+      } catch (err: any) {
+        console.error('R2 upload failed:', err);
+        triggerNotification(`Error: ${err.message}. Make sure .env variables are populated.`);
+        setIsUploading(false);
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+      if (!finalVideoUrl) {
+        triggerNotification('Please enter a video stream URL.');
+        return;
+      }
+    }
+
+    const newVideo: Video = {
+      id: `custom-${Date.now()}`,
+      title: newVideoTitle.trim(),
+      creator: newVideoCreator.trim() || 'Anonymous Creator',
+      views: '0 views',
+      time: 'Just now',
+      duration: '03:45',
+      desc: newVideoDesc.trim() || 'No description provided.',
+      initials: (newVideoCreator.trim() || 'AC').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+      gradient: `linear-gradient(135deg, ${['#2b1201', '#1c0a00', '#140700', '#2d0f00', '#2c0e00', '#1d0701'][Math.floor(Math.random() * 6)]}, #000000)`,
+      category: newVideoCategory,
+      videoUrl: finalVideoUrl,
+      thumbnailUrl: ''
+    };
+
+    const updatedVideos = [...videos, newVideo];
+    setVideos(updatedVideos);
+
+    try {
+      const saved = localStorage.getItem('nude_trends_custom_videos');
+      const parsedSaved = saved ? JSON.parse(saved) : [];
+      localStorage.setItem('nude_trends_custom_videos', JSON.stringify([...parsedSaved, newVideo]));
+    } catch (err) {
+      console.error('Error saving custom video to localStorage:', err);
+    }
+
+    setNewVideoTitle('');
+    setNewVideoUrl('');
+    setSelectedFile(null);
+    setNewVideoCategory('All Leaks');
+    setNewVideoDesc('');
+    setNewVideoCreator('Self Upload');
+    setIsAddModalOpen(false);
+
+    triggerNotification('Video uploaded and saved to R2 successfully!');
+    handleSelectVideo(newVideo);
+  };
+
   return (
-    <div className="min-h-screen bg-[#090909] text-[#f0f0f0] font-sans antialiased flex flex-col selection:bg-orange-500 selection:text-stone-950">
-      
+    <>
       {/* Dynamic Popups */}
       {notification && (
         <div className="fixed bottom-6 right-6 z-[3000] bg-orange-600 border border-orange-500 text-stone-950 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-slideUp font-bold text-xs">
@@ -141,7 +296,13 @@ export default function App() {
 
           {/* Action strip */}
           <div className="flex items-center gap-2.5">
-            {/* Admin posts only. */}
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-600 hover:bg-orange-500 text-stone-950 font-bold text-xs rounded-full transition shadow-lg shadow-orange-500/10 cursor-pointer"
+            >
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Add Custom Video</span>
+            </button>
           </div>
         </div>
       </header>
@@ -544,6 +705,194 @@ export default function App() {
         </div>
       </footer>
 
-    </div>
+      {/* Custom Add Video Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setIsAddModalOpen(false)}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          />
+          
+          {/* Modal Content */}
+          <form 
+            onSubmit={handleAddCustomVideo}
+            className="relative z-10 w-full max-w-lg bg-[#0e0e0e] border border-stone-850 rounded-2xl p-6 sm:p-8 space-y-5 shadow-2xl animate-scaleUp"
+          >
+            <div className="flex justify-between items-center border-b border-stone-850 pb-3">
+              <h2 className="text-base sm:text-lg font-black text-orange-500 uppercase tracking-wider">
+                Add Custom Video (R2 Upload)
+              </h2>
+              <button 
+                type="button"
+                disabled={isUploading}
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-stone-400 hover:text-stone-100 text-sm font-bold px-2 py-1 disabled:opacity-50"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <p className="text-[11px] text-stone-400 leading-relaxed">
+              Upload files directly to your Cloudflare R2 bucket or paste a direct stream URL. Custom uploads are persisted in your local session.
+            </p>
+
+            {/* Toggle tabs for file upload or raw URL */}
+            <div className="flex bg-stone-950 p-1 rounded-xl border border-stone-850">
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={() => setUploadType('file')}
+                className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
+                  uploadType === 'file'
+                    ? 'bg-orange-600 text-stone-950'
+                    : 'text-stone-400 hover:text-stone-100'
+                }`}
+              >
+                R2 Bucket Upload
+              </button>
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={() => setUploadType('url')}
+                className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
+                  uploadType === 'url'
+                    ? 'bg-orange-600 text-stone-950'
+                    : 'text-stone-400 hover:text-stone-100'
+                }`}
+              >
+                Direct Stream URL
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {uploadType === 'file' ? (
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                    Select Video File *
+                  </label>
+                  <input 
+                    type="file"
+                    required
+                    accept="video/*"
+                    disabled={isUploading}
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
+                  />
+                  {selectedFile && (
+                    <p className="text-[10px] text-stone-400 mt-1.5">
+                      File: <span className="text-orange-400 font-bold">{selectedFile.name}</span> ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                    Video Stream URL *
+                  </label>
+                  <input 
+                    type="url"
+                    required
+                    disabled={isUploading}
+                    placeholder="https://media.yourdomain.com/videos/my-clip.mp4"
+                    value={newVideoUrl}
+                    onChange={(e) => setNewVideoUrl(e.target.value)}
+                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                     Video Title *
+                  </label>
+                  <input 
+                    type="text"
+                    required
+                    disabled={isUploading}
+                    placeholder="e.g. Amateur Roommate Pool Party"
+                    value={newVideoTitle}
+                    onChange={(e) => setNewVideoTitle(e.target.value)}
+                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                    Category *
+                  </label>
+                  <select
+                    value={newVideoCategory}
+                    disabled={isUploading}
+                    onChange={(e) => setNewVideoCategory(e.target.value)}
+                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                    Uploader / Creator
+                  </label>
+                  <input 
+                    type="text"
+                    disabled={isUploading}
+                    placeholder="Self Upload"
+                    value={newVideoCreator}
+                    onChange={(e) => setNewVideoCreator(e.target.value)}
+                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                    Description
+                  </label>
+                  <textarea 
+                    rows={2}
+                    disabled={isUploading}
+                    placeholder="Provide details about the video clip..."
+                    value={newVideoDesc}
+                    onChange={(e) => setNewVideoDesc(e.target.value)}
+                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-1.5 px-3 text-xs text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-stone-850">
+              <button 
+                type="button"
+                disabled={isUploading}
+                onClick={() => setIsAddModalOpen(false)}
+                className="px-4 py-2 hover:bg-stone-900 text-stone-400 font-bold text-xs sm:text-sm rounded-xl transition border border-transparent hover:border-stone-800 disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                disabled={isUploading}
+                className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-stone-950 font-extrabold text-xs sm:text-sm rounded-xl transition shadow-lg shadow-orange-500/10 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                {isUploading ? (
+                  <>
+                    <span className="w-3 h-3 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  'Save & Play Video'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
   );
 }
