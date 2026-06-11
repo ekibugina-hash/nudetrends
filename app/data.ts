@@ -11,7 +11,8 @@ export const initialVideos: Video[] = [
     desc: "Exclusive leaked session of a college student taking a private break after an intensive exam week, captured in ultra-clear premium quality.",
     initials: "LV",
     gradient: "linear-gradient(135deg, #2b1201, #0a0500)",
-    category: "All Leaks",
+    category: "Trending Videos",
+    type: "video",
     videoUrl: "https://video.nudetrends.afrozex.com/sample1.mp4",
     thumbnailUrl: ""
   },
@@ -25,7 +26,9 @@ export const initialVideos: Video[] = [
     desc: "A gorgeous, private bedroom shoot featuring a stunning ebony model showing off her flawless angles under warm sunset lighting.",
     initials: "EV",
     gradient: "linear-gradient(135deg, #1c0a00, #3d1400)",
-    category: "Ebony",
+    category: "Nudes",
+    type: "image",
+    imageUrl: "/images/v2.png",
     videoUrl: "",
     thumbnailUrl: ""
   },
@@ -39,7 +42,9 @@ export const initialVideos: Video[] = [
     desc: "Exclusive bedroom clips featuring beautiful bbw models trying on their premium collections of lace and satin sportswear.",
     initials: "CS",
     gradient: "linear-gradient(135deg, #140700, #000000)",
-    category: "BBW",
+    category: "Nudes",
+    type: "image",
+    imageUrl: "/images/v3.png",
     videoUrl: "",
     thumbnailUrl: ""
   },
@@ -53,7 +58,8 @@ export const initialVideos: Video[] = [
     desc: "Uncovered private backyard footage featuring an incredibly fit mature neighbor taking in the beautiful warmth of the afternoon sun.",
     initials: "SS",
     gradient: "linear-gradient(135deg, #2d0f00, #090300)",
-    category: "Milf",
+    category: "Trending Videos",
+    type: "video",
     videoUrl: "",
     thumbnailUrl: ""
   },
@@ -67,7 +73,8 @@ export const initialVideos: Video[] = [
     desc: "A highly demanded activewear try-on and stretching session focusing on deep curves, dynamic flexibility, and muscular tone.",
     initials: "TN",
     gradient: "linear-gradient(135deg, #141414, #2c0e00)",
-    category: "Thick",
+    category: "Trending Videos",
+    type: "video",
     videoUrl: "",
     thumbnailUrl: ""
   },
@@ -81,7 +88,9 @@ export const initialVideos: Video[] = [
     desc: "Curated compilation of premium private social media stories, exclusive photoshoots, and premium amateur shorts.",
     initials: "VA",
     gradient: "linear-gradient(135deg, #1d0701, #300d04)",
-    category: "All Leaks",
+    category: "Nudes",
+    type: "image",
+    imageUrl: "/images/v6.png",
     videoUrl: "",
     thumbnailUrl: ""
   }

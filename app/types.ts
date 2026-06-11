@@ -9,6 +9,9 @@ export interface Video {
   initials: string;
   gradient: string;
   category: string;
+  type?: 'video' | 'image';
+  imageUrl?: string;
+  interestingTitles?: string[];
   videoUrl?: string; // Optional real URL from R2
   thumbnailUrl?: string; // Optional real thumbnail from R2
 }

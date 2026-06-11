@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Compass, 
   TrendingUp, 
@@ -11,66 +12,140 @@ import {
   ThumbsUp, 
   Share2, 
   VideoOff,
-  Play
+  Play,
+  Download,
+  ChevronDown,
+  Menu,
+  X,
+  ArrowLeft,
+  ImageIcon,
+  Video as VideoIcon
 } from 'lucide-react';
 import { Video, Comment } from './types';
-import { initialVideos, initialComments } from './data';
 import VideoPlayer from './components/VideoPlayer';
 
 export default function Home() {
-  const [videos, setVideos] = useState<Video[]>(initialVideos);
-  const [comments, setComments] = useState<Comment[]>(initialComments);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [activeView, setActiveView] = useState<'landing' | 'watch'>('landing');
-  const [activeVideo, setActiveVideo] = useState<Video>(initialVideos[0]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All Leaks');
+  const [activeVideo, setActiveVideo] = useState<Video | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('Trending Videos');
   const [searchQuery, setSearchQuery] = useState('');
   const [commentText, setCommentText] = useState('');
   const [commentName, setCommentName] = useState('My Nickname');
   const [isClient, setIsClient] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [loadingVideos, setLoadingVideos] = useState(true);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   
   // Modals visibility
   const [notification, setNotification] = useState<string | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newVideoTitle, setNewVideoTitle] = useState('');
-  const [newVideoUrl, setNewVideoUrl] = useState('');
-  const [newVideoCategory, setNewVideoCategory] = useState('All Leaks');
-  const [newVideoDesc, setNewVideoDesc] = useState('');
-  const [newVideoCreator, setNewVideoCreator] = useState('Self Upload');
+  
+  // Mobile sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Cloudflare R2 Upload states
-  const [uploadType, setUploadType] = useState<'file' | 'url'>('file');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  // Storage and configuration states loaded from Admin Panel
+  const [interestingTitlesMap, setInterestingTitlesMap] = useState<Record<string, string[]>>({});
+  const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
+  const [popupAd, setPopupAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
+  const [showPopupModal, setShowPopupModal] = useState(false);
 
-  // SSR-safe loading of localstorage videos & query parameters after mounting
+  // Fetch videos on mount
   useEffect(() => {
     setIsClient(true);
     
-    // Load custom videos from localStorage
-    const saved = localStorage.getItem('nude_trends_custom_videos');
-    let loadedCustomVideos: Video[] = [];
-    if (saved) {
+    const fetchVideosData = async () => {
+      setLoadingVideos(true);
       try {
-        const parsed = JSON.parse(saved);
-        loadedCustomVideos = parsed.filter((v: Video) => !initialVideos.some(iv => iv.id === v.id));
-        setVideos([...initialVideos, ...loadedCustomVideos]);
+        const res = await fetch('/api/videos');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.media) {
+            setVideos(data.media);
+
+            // Determine if there's a watch ID in URL
+            const params = new URLSearchParams(window.location.search);
+            const watchId = params.get('watch');
+            if (watchId) {
+              const matchedVideo = data.media.find((v: Video) => v.id === watchId);
+              if (matchedVideo) {
+                setActiveVideo(matchedVideo);
+                setActiveView('watch');
+              } else if (data.media.length > 0) {
+                setActiveVideo(data.media[0]);
+              }
+            } else if (data.media.length > 0) {
+              setActiveVideo(data.media[0]);
+            }
+          }
+        }
       } catch (e) {
-        console.error('Error parsing custom videos from localStorage:', e);
+        console.error('Failed to load dynamic media files:', e);
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
+
+    fetchVideosData();
+
+    // Load interesting titles
+    const savedTitles = localStorage.getItem('nude_trends_interesting_titles');
+    if (savedTitles) {
+      try {
+        setInterestingTitlesMap(JSON.parse(savedTitles));
+      } catch (e) {
+        console.error('Error loading interesting titles map:', e);
       }
     }
 
-    // Load active watch video from query parameters
-    const params = new URLSearchParams(window.location.search);
-    const watchId = params.get('watch');
-    if (watchId) {
-      const allVideos = [...initialVideos, ...loadedCustomVideos];
-      const matchedVideo = allVideos.find(v => v.id === watchId);
-      if (matchedVideo) {
-        setActiveVideo(matchedVideo);
-        setActiveView('watch');
-      }
+    // Load Banner Ad
+    const savedBanner = localStorage.getItem('nude_trends_banner_ads');
+    if (savedBanner) {
+      try {
+        setBannerAd(JSON.parse(savedBanner));
+      } catch (e) {}
+    }
+
+    // Load Popup Ad
+    const savedPopup = localStorage.getItem('nude_trends_popup_ads');
+    if (savedPopup) {
+      try {
+        const parsed = JSON.parse(savedPopup);
+        setPopupAd(parsed);
+        if (parsed.enabled && parsed.imageUrl) {
+          setTimeout(() => {
+            setShowPopupModal(true);
+          }, 2000);
+        }
+      } catch (e) {}
     }
   }, []);
+
+  // Fetch comments when active video changes
+  useEffect(() => {
+    if (!activeVideo?.id) return;
+    
+    const fetchComments = async () => {
+      setLoadingComments(true);
+      try {
+        const res = await fetch(`/api/comments?videoId=${encodeURIComponent(activeVideo.id)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.comments) {
+            setComments(data.comments);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load comments:', e);
+      } finally {
+        setLoadingComments(false);
+      }
+    };
+
+    fetchComments();
+  }, [activeVideo?.id]);
 
   // Sync state back to window URL query parameters (only runs on the client)
   useEffect(() => {
@@ -84,26 +159,42 @@ export default function Home() {
     window.history.pushState({}, '', url.pathname + url.search);
   }, [activeView, activeVideo, isClient]);
 
-  // Filter categorization categories
+  // Reset page when category or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory]);
+
+  // Categories
   const categories = [
-    'All Leaks',
-    'Ebony',
-    'BBW',
-    'Milf',
-    'Thick'
+    'Trending Videos',
+    'Nudes'
   ];
 
   // Search and Category filters
   const filteredVideos = videos.filter((vid) => {
-    const matchesCategory = selectedCategory === 'All Leaks' || vid.category === selectedCategory;
+    // 1. Filter by Category & Type
+    let matchesCategory = true;
+    if (selectedCategory === 'Trending Videos') {
+      matchesCategory = vid.type === 'video';
+    } else if (selectedCategory === 'Nudes') {
+      matchesCategory = vid.type === 'image';
+    }
+
+    // 2. Search query matches
     const matchesQuery = 
       vid.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       vid.creator.toLowerCase().includes(searchQuery.toLowerCase()) ||
       vid.desc.toLowerCase().includes(searchQuery.toLowerCase());
+    
     return matchesCategory && matchesQuery;
   });
 
-  // Load a video into watch view
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredVideos.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedVideos = filteredVideos.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // Load a video/image into watch view
   const handleSelectVideo = (video: Video) => {
     setActiveVideo(video);
     setActiveView('watch');
@@ -111,22 +202,36 @@ export default function Home() {
   };
 
   // Submit dynamic comment responses
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || !activeVideo) return;
 
     const newComment: Comment = {
       id: `c-user-${Date.now()}`,
       videoId: activeVideo.id,
-      author: commentName.trim() || 'Anonymous Developer',
+      author: commentName.trim() || 'Anonymous User',
       time: 'Just now',
       text: commentText.trim(),
-      avatarInitials: (commentName.trim() || 'AD').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+      avatarInitials: (commentName.trim() || 'AU').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     };
 
-    setComments([newComment, ...comments]);
-    setCommentText('');
-    triggerNotification('Comment posted successfully!');
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newComment),
+      });
+      if (res.ok) {
+        setComments(prev => [newComment, ...prev]);
+        setCommentText('');
+        triggerNotification('Comment posted successfully!');
+      } else {
+        throw new Error('Failed to post comment');
+      }
+    } catch (err) {
+      console.error(err);
+      triggerNotification('Failed to post comment. Try again.');
+    }
   };
 
   const triggerNotification = (msg: string) => {
@@ -140,111 +245,6 @@ export default function Home() {
     triggerNotification("Copied stream link to clipboard!");
   };
 
-  const handleAddCustomVideo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newVideoTitle.trim()) {
-      triggerNotification('Please enter a video title.');
-      return;
-    }
-
-    let finalVideoUrl = newVideoUrl.trim();
-
-    if (uploadType === 'file') {
-      if (!selectedFile) {
-        triggerNotification('Please select a video file.');
-        return;
-      }
-
-      setIsUploading(true);
-      triggerNotification('Uploading video to Cloudflare R2...');
-
-      try {
-        // 1. Get presigned upload URL from API route
-        const res = await fetch('/api/get-presigned-url', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileName: selectedFile.name,
-            fileType: selectedFile.type,
-          }),
-        });
-
-        if (!res.ok) {
-          const errorMsg = await res.json();
-          throw new Error(errorMsg.error || 'Failed to request R2 credentials');
-        }
-
-        const { uploadUrl, publicUrl } = await res.json();
-
-        // 2. Upload the file binary directly using HTTP PUT
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': selectedFile.type,
-          },
-          body: selectedFile,
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error('Direct binary stream upload failed.');
-        }
-
-        finalVideoUrl = publicUrl;
-      } catch (err: any) {
-        console.error('R2 upload failed:', err);
-        triggerNotification(`Error: ${err.message}. Make sure .env variables are populated.`);
-        setIsUploading(false);
-        return;
-      } finally {
-        setIsUploading(false);
-      }
-    } else {
-      if (!finalVideoUrl) {
-        triggerNotification('Please enter a video stream URL.');
-        return;
-      }
-    }
-
-    const newVideo: Video = {
-      id: `custom-${Date.now()}`,
-      title: newVideoTitle.trim(),
-      creator: newVideoCreator.trim() || 'Anonymous Creator',
-      views: '0 views',
-      time: 'Just now',
-      duration: '03:45',
-      desc: newVideoDesc.trim() || 'No description provided.',
-      initials: (newVideoCreator.trim() || 'AC').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
-      gradient: `linear-gradient(135deg, ${['#2b1201', '#1c0a00', '#140700', '#2d0f00', '#2c0e00', '#1d0701'][Math.floor(Math.random() * 6)]}, #000000)`,
-      category: newVideoCategory,
-      videoUrl: finalVideoUrl,
-      thumbnailUrl: ''
-    };
-
-    const updatedVideos = [...videos, newVideo];
-    setVideos(updatedVideos);
-
-    try {
-      const saved = localStorage.getItem('nude_trends_custom_videos');
-      const parsedSaved = saved ? JSON.parse(saved) : [];
-      localStorage.setItem('nude_trends_custom_videos', JSON.stringify([...parsedSaved, newVideo]));
-    } catch (err) {
-      console.error('Error saving custom video to localStorage:', err);
-    }
-
-    setNewVideoTitle('');
-    setNewVideoUrl('');
-    setSelectedFile(null);
-    setNewVideoCategory('All Leaks');
-    setNewVideoDesc('');
-    setNewVideoCreator('Self Upload');
-    setIsAddModalOpen(false);
-
-    triggerNotification('Video uploaded and saved to R2 successfully!');
-    handleSelectVideo(newVideo);
-  };
-
   return (
     <>
       {/* Dynamic Popups */}
@@ -252,6 +252,44 @@ export default function Home() {
         <div className="fixed bottom-6 right-6 z-[3000] bg-orange-600 border border-orange-500 text-stone-950 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-slideUp font-bold text-xs">
           <CheckCircle2 className="w-4 h-4 text-stone-950" />
           <span>{notification}</span>
+        </div>
+      )}
+
+      {/* Pop-up Ad Modal Overlay */}
+      {showPopupModal && popupAd && popupAd.enabled && popupAd.imageUrl && (
+        <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
+          <div 
+            onClick={() => setShowPopupModal(false)}
+            className="absolute inset-0 bg-black/85 backdrop-blur-sm transition-opacity"
+          />
+          <div className="relative z-10 w-full max-w-sm bg-[#0e0e0e] border border-orange-500/30 rounded-2xl p-4 sm:p-5 shadow-2xl animate-scaleUp text-center space-y-4">
+            <div className="flex justify-between items-center border-b border-stone-850 pb-2">
+              <span className="text-[10px] font-mono font-bold text-orange-500 uppercase tracking-widest">
+                🔥 EXCLUSIVE SPONSOR AD
+              </span>
+              <button 
+                onClick={() => setShowPopupModal(false)}
+                className="text-stone-400 hover:text-white text-xs font-bold px-1.5 py-0.5 bg-stone-900 border border-stone-800 rounded hover:border-stone-700 transition"
+              >
+                ✕ Close
+              </button>
+            </div>
+            
+            <a 
+              href={popupAd.linkUrl || "#"} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={() => setShowPopupModal(false)}
+              className="block overflow-hidden rounded-xl border border-stone-880 hover:border-orange-500 transition-colors aspect-square max-h-[300px] relative group"
+            >
+              <img src={popupAd.imageUrl} alt="Sponsor ad" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-center p-4">
+                <span className="bg-orange-500 text-stone-950 font-black text-xs px-4 py-2 rounded-lg shadow-lg uppercase tracking-wider group-hover:bg-orange-400 transition-colors">
+                  Enter Sponsor Site
+                </span>
+              </div>
+            </a>
+          </div>
         </div>
       )}
 
@@ -272,42 +310,166 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Core Central Search Wrap */}
-          <div className="flex-1 max-w-lg relative">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-stone-500">
-              <Search className="w-4 h-4" />
+          {/* Core Central Search Wrap (hidden on mobile header) */}
+          <div className="hidden md:flex flex-1 max-w-xl items-center">
+            <div className="relative flex-1">
+              <input 
+                type="text"
+                placeholder="Search videos, models, or categories..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-stone-900/60 border border-stone-880 rounded-l-full py-2 pl-5 pr-12 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-550 transition-colors"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-3 flex items-center text-xs text-stone-500 hover:text-stone-300"
+                >
+                  Clear
+                </button>
+              )}
             </div>
-            <input 
-              type="text"
-              placeholder="Search videos, models, or categories..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-stone-900/60 border border-stone-800 rounded-full py-1.5 pl-9 pr-4 text-sm text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-500 transition-colors"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute inset-y-0 right-3 flex items-center text-xs text-stone-500 hover:text-stone-300"
-              >
-                Clear
-              </button>
-            )}
+            <button
+              onClick={() => {}}
+              className="bg-orange-500 hover:bg-orange-400 text-stone-950 px-5 py-2 rounded-r-full flex items-center justify-center border border-orange-500 transition-colors cursor-pointer"
+              title="Search"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* Action strip */}
-          <div className="flex items-center gap-2.5">
+          {/* Header Navigation Actions (CRITICAL: Visible Admin Control link removed) */}
+          <div className="flex items-center gap-2">
+            {/* Mobile Sidebar Hamburger Button */}
             <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-600 hover:bg-orange-500 text-stone-950 font-bold text-xs rounded-full transition shadow-lg shadow-orange-500/10 cursor-pointer"
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 text-stone-400 hover:text-orange-500 bg-stone-900 border border-stone-850 rounded-lg transition"
+              title="Open Navigation"
             >
-              <UploadCloud className="w-3.5 h-3.5" />
-              <span>Add Custom Video</span>
+              <Menu className="w-4 h-4" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Grid Subnav categories */}
+      {/* Sliding Mobile Sidebar */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-[2000] md:hidden">
+          {/* Custom style for slide-in animation from right */}
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes slideFromRight {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+            .animate-slideFromRight {
+              animation: slideFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+          `}} />
+
+          {/* Sidebar Backdrop Overlay */}
+          <div 
+            onClick={() => setIsSidebarOpen(false)}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+          />
+          
+          {/* Sidebar drawer body (sliding from right) */}
+          <div className="absolute inset-y-0 right-0 w-64 bg-[#0c0c0c] border-l border-stone-850 p-6 flex flex-col justify-between z-10 animate-slideFromRight">
+            <div className="space-y-6">
+              
+              {/* Header and Close button */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-white text-base tracking-tighter uppercase">
+                    Nude
+                  </span>
+                  <span className="bg-orange-500 text-black px-1.5 py-0.5 rounded font-black text-xs tracking-tight uppercase">
+                    TRENDS
+                  </span>
+                </div>
+                
+                {/* Black X Close Button with white circular background */}
+                <button 
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-1.5 bg-white hover:bg-stone-200 border border-stone-300 rounded-full transition shadow-md flex items-center justify-center cursor-pointer"
+                  title="Close Navigation"
+                >
+                  <X className="w-4 h-4 text-black font-extrabold" />
+                </button>
+              </div>
+
+              {/* Sidebar Menu options */}
+              <div className="space-y-2.5 pt-4">
+                <span className="text-[10px] font-mono text-stone-550 uppercase tracking-widest block">Categories</span>
+                
+                <button
+                  onClick={() => {
+                    setSelectedCategory('Trending Videos');
+                    setActiveView('landing');
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`w-full text-left py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                    selectedCategory === 'Trending Videos' && activeView === 'landing'
+                      ? 'bg-orange-600 text-stone-950'
+                      : 'bg-stone-900/50 hover:bg-stone-900 text-stone-400 hover:text-white'
+                  }`}
+                >
+                  <VideoIcon className="w-3.5 h-3.5" />
+                  <span>Trending Videos</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedCategory('Nudes');
+                    setActiveView('landing');
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`w-full text-left py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                    selectedCategory === 'Nudes' && activeView === 'landing'
+                      ? 'bg-orange-600 text-stone-950'
+                      : 'bg-stone-900/50 hover:bg-stone-900 text-stone-400 hover:text-white'
+                  }`}
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Nudes</span>
+                </button>
+              </div>
+
+            </div>
+
+            {/* Sidebar bottom: Telegram and Twitter/X Buttons */}
+            <div className="space-y-2 pt-4 border-t border-stone-900">
+              <span className="text-[10px] font-mono text-stone-550 uppercase tracking-widest block">Channels</span>
+              
+              <a 
+                href="https://t.me/+d5-D8vyHKuMzZDdk" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="w-full py-2 bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg transition"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M19.9 3.01L2.24 9.81c-1.13.45-1.12 1.09-.2 1.37l4.53 1.41 10.5-6.62c.5-.3.95-.14.57.2L9.1 14.67v3.38c.33 0 .48-.15.66-.33l1.58-1.54 3.29 2.43c.6.33 1.04.16 1.19-.55l2.16-10.2c.22-.88-.34-1.28-.98-1z" />
+                </svg>
+                <span>Telegram Link</span>
+              </a>
+
+              <a 
+                href="https://x.com" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="w-full py-2 bg-black hover:bg-stone-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg transition border border-stone-850"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                <span>Twitter / X Feed</span>
+              </a>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Grid Subnav categories (Only on desktop landing) */}
       {activeView === 'landing' && (
         <nav className="bg-[#111111] border-b border-white/5 py-3">
           <div className="max-w-[1440px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 overflow-x-auto scrollbar-none">
@@ -338,48 +500,99 @@ export default function Home() {
 
       {/* Page Content Body */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 space-y-8">
+
+        {/* Mobile Search input (displayed below header on small screens) */}
+        {activeView === 'landing' && (
+          <div className="md:hidden w-full flex items-center relative">
+            <input 
+              type="text"
+              placeholder="Search leaks, videos, photos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-stone-900 border border-stone-850 rounded-xl py-2 pl-4 pr-10 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-550"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 text-stone-550 hover:text-stone-300 text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Dynamic Sponsor Banner Ad (Landing page top) */}
+        {activeView === 'landing' && bannerAd && bannerAd.enabled && bannerAd.imageUrl && (
+          <div className="w-full bg-[#111111] border border-orange-500/25 p-1 rounded-xl flex items-center justify-center relative overflow-hidden group shadow-lg">
+            <a href={bannerAd.linkUrl || "#"} target="_blank" rel="noopener noreferrer" className="w-full h-20 sm:h-24 relative block">
+              <img src={bannerAd.imageUrl} alt="Sponsor Banner Ad" className="w-full h-full object-cover rounded-lg group-hover:scale-[1.005] transition-transform duration-300" />
+              <span className="absolute bottom-2 right-2 bg-stone-950/85 backdrop-blur-sm text-[8px] font-mono font-black text-orange-400 px-2 py-0.5 rounded border border-orange-500/20 uppercase">
+                SPONSOR AD
+              </span>
+            </a>
+          </div>
+        )}
         
         {/* LANDING PAGE GRID VIEW */}
         {activeView === 'landing' && (
           <div className="space-y-6">
             
-            {/* Video Streams Header */}
+            {/* Video/Image Streams Header */}
             <div className="flex items-center justify-between border-b border-stone-850 pb-3">
               <h3 className="text-sm font-extrabold text-stone-300 uppercase tracking-wider flex items-center gap-2">
                 <Compass className="w-4 h-4 text-orange-500" />
-                <span>Available Videos ({filteredVideos.length})</span>
+                <span>
+                  Available {selectedCategory === 'Trending Videos' ? 'Videos' : 'Images'} ({filteredVideos.length})
+                </span>
               </h3>
-              {selectedCategory !== 'All Leaks' && (
+              {searchQuery && (
                 <button 
-                  onClick={() => setSelectedCategory('All Leaks')}
+                  onClick={() => setSearchQuery('')}
                   className="text-xs text-orange-500 hover:underline"
                 >
-                  Reset Category
+                  Clear Search
                 </button>
               )}
             </div>
 
             {/* Grid Container */}
-            {filteredVideos.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-x-3 gap-y-5 sm:gap-x-5 sm:gap-y-7">
-                {filteredVideos.map((vid) => {
-                  return (
-                    <div 
-                      key={vid.id}
-                      onClick={() => handleSelectVideo(vid)}
-                      className="group flex flex-col cursor-pointer bg-[#111111]/40 border border-stone-900 rounded-xl overflow-hidden hover:border-stone-800 transition shadow-sm hover:shadow-xl hover:-translate-y-0.5"
-                    >
-                      {/* Image Thumbnail Frame or CSS Gradient Fallback */}
-                      <div className="relative aspect-video bg-stone-950 rounded-t-xl overflow-hidden border-b border-stone-900">
-                        {vid.thumbnailUrl ? (
+            {loadingVideos ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+                {Array.from({ length: 10 }).map((_, idx) => (
+                  <div key={idx} className="aspect-video bg-stone-900/40 border border-stone-850 rounded-xl animate-pulse flex items-center justify-center">
+                    <span className="w-4 h-4 border border-orange-500/30 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ))}
+              </div>
+            ) : paginatedVideos.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {paginatedVideos.map((vid) => {
+                    const isImage = vid.type === 'image';
+
+                    return (
+                      <div 
+                        key={vid.id}
+                        onClick={() => handleSelectVideo(vid)}
+                        className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/50 transition shadow-sm hover:shadow-xl hover:-translate-y-0.5"
+                      >
+                        {/* Media image source renderer */}
+                        {isImage ? (
+                          <img 
+                            src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"} 
+                            alt={vid.title}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                          />
+                        ) : vid.thumbnailUrl ? (
                           <img 
                             src={vid.thumbnailUrl} 
                             alt={vid.title}
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
                           />
                         ) : vid.videoUrl ? (
-                          /* Browser native poster generation if no thumb, append #t=1.5 trick */
                           <video 
                             src={`${vid.videoUrl}#t=1.5`}
                             preload="metadata"
@@ -390,54 +603,97 @@ export default function Home() {
                         ) : (
                           <div 
                             style={{ backgroundImage: vid.gradient }}
-                            className="w-full h-full transition-transform duration-300 group-hover:scale-105"
+                            className="w-full h-full transition-transform duration-300 group-hover:scale-105 pointer-events-none"
                           />
                         )}
 
-                        {/* Central Play button UI */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-black/70 group-hover:bg-orange-500 group-hover:scale-110 border border-white/10 group-hover:border-orange-500 rounded-full flex items-center justify-center transition-all">
-                          <Play className="w-4 h-4 fill-white group-hover:fill-stone-950 text-white group-hover:text-stone-950 ml-0.5 transition-colors" />
-                        </div>
+                        {/* Overlay badges & Play interface */}
+                        {!isImage ? (
+                          <>
+                            {/* Play button */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-black/70 group-hover:bg-orange-500 group-hover:scale-110 border border-white/10 group-hover:border-orange-500 rounded-full flex items-center justify-center transition-all pointer-events-none">
+                              <Play className="w-4 h-4 fill-white group-hover:fill-stone-950 text-white group-hover:text-stone-950 ml-0.5 transition-colors pointer-events-none" />
+                            </div>
 
-                        {/* Duration badge */}
-                        <span className="absolute bottom-2 right-2 bg-stone-950/80 backdrop-blur-sm border border-white/5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-stone-300">
-                          {vid.duration}
-                        </span>
+                            {/* Duration Badge */}
+                            <span className="absolute bottom-2 right-2 bg-stone-950/80 backdrop-blur-sm border border-white/5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-stone-300 pointer-events-none">
+                              {vid.duration}
+                            </span>
 
-                        {vid.videoUrl && (
-                          <span className="absolute top-2 left-2 bg-orange-600/90 text-stone-950 text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded uppercase">
-                            HD Video
-                          </span>
+                            {/* HD quality tag */}
+                            {vid.videoUrl && (
+                              <span className="absolute top-2 left-2 bg-orange-600/90 text-stone-950 text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded uppercase pointer-events-none">
+                                HD
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {/* Indicator for Image post */}
+                            <span className="absolute top-2 left-2 bg-stone-900 border border-stone-880 text-orange-400 text-[8px] font-mono font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider pointer-events-none flex items-center gap-1 shadow">
+                              <ImageIcon className="w-2.5 h-2.5" />
+                              <span>Image</span>
+                            </span>
+                          </>
                         )}
                       </div>
+                    );
+                  })}
+                </div>
 
-                      {/* Video description metadata block */}
-                      <div className="p-4 flex-1 flex flex-col justify-between">
-                        <div className="space-y-1.5">
-                          <h4 className="font-bold text-[11px] sm:text-sm text-stone-100 group-hover:text-orange-400 line-clamp-2 leading-tight transition-colors">
-                            {vid.title}
-                          </h4>
-                          <p className="text-[10px] sm:text-xs text-stone-400 font-semibold">{vid.creator}</p>
-                        </div>
+                {/* SLEEK PAGINATION CONTROLS */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 pt-8 border-t border-stone-900 mt-8 animate-fadeIn">
+                    <button
+                      disabled={currentPage === 1}
+                      onClick={() => {
+                        setCurrentPage(prev => Math.max(prev - 1, 1));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-stone-850 border border-stone-850 hover:border-stone-700 text-stone-400 hover:text-white text-xs font-bold font-mono transition disabled:opacity-30 disabled:hover:bg-stone-900 disabled:hover:text-stone-400 disabled:cursor-not-allowed"
+                    >
+                      &lt; Prev
+                    </button>
 
-                        <div className="pt-3 flex items-center justify-between text-[11px] text-stone-500 font-mono border-t border-stone-900 mt-2">
-                          <span>{vid.views}</span>
-                          <span>{vid.time}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => {
+                          setCurrentPage(page);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition ${
+                          currentPage === page
+                            ? 'bg-orange-500 text-stone-950 shadow-lg shadow-orange-500/25'
+                            : 'bg-stone-900 hover:bg-stone-850 border border-stone-850 hover:border-stone-700 text-stone-450 hover:text-white'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    <button
+                      disabled={currentPage === totalPages}
+                      onClick={() => {
+                        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-stone-850 border border-stone-850 hover:border-stone-700 text-stone-400 hover:text-white text-xs font-bold font-mono transition disabled:opacity-30 disabled:hover:bg-stone-900 disabled:hover:text-stone-400 disabled:cursor-not-allowed"
+                    >
+                      Next &gt;
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="p-16 border border-stone-800 rounded-2xl bg-[#111111]/30 text-center space-y-4">
                 <VideoOff className="w-12 h-12 text-stone-600 mx-auto" />
                 <div>
-                  <h4 className="font-bold text-stone-200">No stream videos matched selection parameters</h4>
-                  <p className="text-xs text-stone-500 mt-1 max-w-sm mx-auto">Try typing another query or clear the filter tabs to view original items.</p>
+                  <h4 className="font-bold text-stone-200">No stream media matched selection parameters</h4>
+                  <p className="text-xs text-stone-500 mt-1 max-w-sm mx-auto">Try typing another query or clear filters to view original items.</p>
                 </div>
                 <button 
-                  onClick={() => { setSelectedCategory('All Leaks'); setSearchQuery(''); }}
+                  onClick={() => { setSelectedCategory('Trending Videos'); setSearchQuery(''); }}
                   className="px-4 py-1.5 bg-stone-950 hover:bg-stone-900 border border-stone-800 hover:border-stone-700 text-stone-300 text-xs rounded transition"
                 >
                   Clear All Filters
@@ -448,241 +704,276 @@ export default function Home() {
           </div>
         )}
 
-        {/* WATCH STREAM DETAIL PAGE */}
-        {activeView === 'watch' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* WATCH STREAM & DETAIL VIEW PAGE */}
+        {activeView === 'watch' && activeVideo && (
+          <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn">
+
+            {/* Back Button to get user back to home page */}
+            <button 
+              onClick={() => setActiveView('landing')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900 hover:bg-stone-850 border border-stone-800 hover:border-stone-700 text-xs font-mono font-bold text-stone-400 hover:text-white rounded-lg transition cursor-pointer group"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+              <span>Back to Home</span>
+            </button>
             
-            {/* Primary Left hand side Stream Player Frame */}
-            <div className="lg:col-span-2 space-y-6">
+            {/* Primary Stream Frame / Viewer */}
+            <div className="space-y-4">
               
-              {/* Custom Integrated Stream Player wrapper */}
-              <VideoPlayer video={activeVideo} />
+              {/* Conditional Rendering: Image Viewer vs Video Player */}
+              {activeVideo.type === 'image' ? (
+                <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-stone-800 shadow-xl flex items-center justify-center group select-none">
+                  <img 
+                    src={activeVideo.imageUrl || activeVideo.thumbnailUrl || "/images/v2.png"} 
+                    alt={activeVideo.title}
+                    className="w-full h-full object-contain"
+                  />
+                  <div className="absolute top-4 right-4 bg-stone-950/80 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/5 text-[9px] font-mono font-black text-orange-400 uppercase tracking-widest shadow">
+                    Premium Nude Image
+                  </div>
+                </div>
+              ) : (
+                <VideoPlayer video={activeVideo} />
+              )}
 
-              {/* Title & Metadata Strip */}
-              <div className="bg-[#111111]/40 border border-stone-900 rounded-xl p-5 sm:p-6 space-y-4 shadow-xl">
-                <div>
-                  {activeVideo.videoUrl ? (
-                    <span className="inline-block px-2.5 py-0.5 bg-orange-500 text-black text-[10px] uppercase font-bold rounded mb-2">
-                      Premium HD Video
-                    </span>
-                  ) : (
-                    <span className="inline-block px-2.5 py-0.5 bg-stone-800 text-stone-400 text-[10px] uppercase font-bold rounded mb-2">
-                      Exclusive Video
-                    </span>
+              {/* Action Bar Directly Under Player */}
+              <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-b border-stone-900">
+                <div className="relative">
+                  <button 
+                    onClick={() => setIsDownloadOpen(!isDownloadOpen)}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-stone-950 text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${isDownloadOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isDownloadOpen && (
+                    <div className="absolute left-0 mt-1.5 w-40 bg-stone-900 border border-stone-800 rounded-lg shadow-xl py-1 z-50">
+                      {activeVideo.type === 'image' ? (
+                        <button
+                          onClick={() => {
+                            setIsDownloadOpen(false);
+                            triggerNotification('Downloading image in Full resolution...');
+                          }}
+                          className="w-full text-left px-4 py-2 text-xs text-stone-300 hover:bg-stone-800 hover:text-white transition-colors"
+                        >
+                          Full Resolution PNG
+                        </button>
+                      ) : (
+                        ['1080p (Full HD)', '720p (HD)', '480p (SD)'].map((quality) => (
+                          <button
+                            key={quality}
+                            onClick={() => {
+                              setIsDownloadOpen(false);
+                              triggerNotification(`Downloading video in ${quality}...`);
+                            }}
+                            className="w-full text-left px-4 py-2 text-xs text-stone-300 hover:bg-stone-800 hover:text-white transition-colors"
+                          >
+                            {quality}
+                          </button>
+                        ))
+                      )}
+                    </div>
                   )}
-                  
-                  <h1 className="text-lg sm:text-xl font-extrabold text-stone-500 leading-snug">
-                    <span className="text-stone-100">{activeVideo.title}</span>
-                  </h1>
                 </div>
 
-                {/* Sub title details strip */}
-                <div className="flex flex-wrap items-center justify-between gap-4 py-3 border-y border-stone-850">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-600 to-orange-500 text-stone-950 font-extrabold text-xs flex items-center justify-center">
-                      {activeVideo.initials}
-                    </div>
-                    <div>
-                      <div className="font-bold text-xs sm:text-sm text-stone-100">{activeVideo.creator}</div>
-                      <div className="text-[11px] text-stone-500 font-mono">1.2M Subscriber Core</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5">
-                    <button 
-                      onClick={() => handleShare(activeVideo)}
-                      className="px-4 py-2 hover:bg-stone-900 border border-stone-850 hover:border-stone-700 text-stone-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
-                    >
-                      <Share2 className="w-3.5 h-3.5" />
-                      Get Link
-                    </button>
-                    
-                    <button 
-                      onClick={() => triggerNotification("Action registered under simulated active pool")}
-                      className="px-4 py-2 bg-stone-950 border border-stone-850 hover:border-stone-700 text-stone-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
-                    >
-                      <ThumbsUp className="w-3.5 h-3.5" />
-                      Upvote
-                    </button>
-                  </div>
-                </div>
-
-                {/* Detailed Narrative Panel */}
-                <div className="space-y-2">
-                  <div className="text-xs font-mono text-stone-500 flex items-center gap-3">
-                    <span>{activeVideo.views}</span>
-                    <span>•</span>
-                    <span>{activeVideo.time}</span>
-                    <span>•</span>
-                    <span className="text-orange-500">Category: {activeVideo.category}</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
-                    {activeVideo.desc}
-                  </p>
-                </div>
-
+                <button 
+                  onClick={() => handleShare(activeVideo)}
+                  className="px-4 py-2 bg-stone-900 hover:bg-stone-850 text-stone-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border border-stone-800 hover:border-stone-700 cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Copy Link</span>
+                </button>
               </div>
 
-              {/* Interactive Comments threads */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 border-b border-stone-850 pb-2">
-                  <MessageSquare className="w-4 h-4 text-orange-500" />
-                  <h3 className="text-xs font-extrabold text-stone-300 uppercase tracking-widest">
-                    Comments ({comments.filter(c => c.videoId === activeVideo.id).length})
-                  </h3>
+              {/* Trimmed Metadata (CRITICAL: Title Text below video cleaned out) */}
+              <div className="py-1.5 space-y-1">
+                <div className="flex items-center gap-2 text-xs text-stone-400 font-mono">
+                  <span className="font-bold text-stone-300">{activeVideo.creator}</span>
+                  <span>•</span>
+                  <span>{activeVideo.views}</span>
+                  <span>•</span>
+                  <span>{activeVideo.time}</span>
                 </div>
+                <p className="text-xs text-stone-400 mt-2 leading-relaxed bg-stone-900/10 p-3 rounded-xl border border-stone-900/50">
+                  {activeVideo.desc}
+                </p>
+              </div>
 
-                {/* Comment Box Submission */}
-                <form onSubmit={handleAddComment} className="bg-stone-950 border border-stone-850 rounded-xl p-4 space-y-3 shadow-lg">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">
-                        Your Nickname
-                      </label>
-                      <input 
-                        type="text"
-                        placeholder="e.g. SysOps Chief"
-                        value={commentName}
-                        onChange={(e) => setCommentName(e.target.value)}
-                        className="w-full bg-[#111111] border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-lg py-1.5 px-3 text-xs text-stone-100 focus:outline-none transition-colors"
-                      />
-                    </div>
+              {/* Dynamic Interesting Titles inserted by Admin */}
+              {interestingTitlesMap[activeVideo.id] && interestingTitlesMap[activeVideo.id].length > 0 && (
+                <div className="bg-orange-500/5 border border-orange-500/25 p-4 rounded-xl space-y-2 mt-2 shadow-inner">
+                  <span className="text-[9px] font-mono font-extrabold text-orange-500 uppercase tracking-widest block">
+                    🔥 POPULAR IN RELATION / UPDATE TOPICS
+                  </span>
+                  <div className="space-y-1.5">
+                    {interestingTitlesMap[activeVideo.id].map((title, idx) => (
+                      <p key={idx} className="text-xs font-black text-stone-200 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0 animate-ping" />
+                        {title}
+                      </p>
+                    ))}
                   </div>
+                </div>
+              )}
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">
-                      Your Response
-                    </label>
-                    <textarea 
-                      required
-                      rows={2}
-                      placeholder="Add a comment..."
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      className="w-full bg-[#111111] border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-lg py-1.5 px-3 text-xs text-stone-100 placeholder:text-stone-600 focus:outline-none transition-colors"
-                    />
-                  </div>
-
-                  <div className="flex justify-between items-center pt-1">
-                    <span className="text-[10px] text-stone-500 font-mono italic">
-                      Simulated local state pool. Updates on submit.
+              {/* Sponsor Banner Ad (Watch Page display) */}
+              {bannerAd && bannerAd.enabled && bannerAd.imageUrl && (
+                <div className="w-full bg-[#111111] border border-orange-500/20 p-1 rounded-xl flex items-center justify-center relative overflow-hidden group shadow-lg mt-4">
+                  <a href={bannerAd.linkUrl || "#"} target="_blank" rel="noopener noreferrer" className="w-full h-16 sm:h-20 relative block">
+                    <img src={bannerAd.imageUrl} alt="Sponsor Banner" className="w-full h-full object-cover rounded-lg group-hover:scale-[1.005] transition-transform duration-300" />
+                    <span className="absolute bottom-2 right-2 bg-stone-950/80 backdrop-blur-sm text-[8px] font-mono font-black text-orange-400 px-1.5 py-0.5 rounded border border-orange-500/20 uppercase">
+                      SPONSOR
                     </span>
-                    <button
-                      type="submit"
-                      className="px-4 py-1.5 bg-[#f0f0f0] hover:bg-orange-500 hover:text-stone-950 text-stone-950 font-extrabold text-xs rounded-lg transition"
-                    >
-                      Post Comment
-                    </button>
-                  </div>
+                  </a>
+                </div>
+              )}
+
+              {/* Interactive Comments threads */}
+              <div className="space-y-4 pt-4 border-t border-stone-900">
+                <h3 className="text-sm font-extrabold text-stone-300 uppercase tracking-wider">
+                  Comments ({comments.length})
+                </h3>
+
+                {/* Simple comment form */}
+                <form onSubmit={handleAddComment} className="flex gap-2">
+                  <input 
+                    required
+                    type="text"
+                    placeholder="Add a comment..."
+                    value={commentText}
+                    onChange={(e) => {
+                      setCommentText(e.target.value);
+                      if (commentName === 'My Nickname') {
+                        setCommentName('Anonymous User');
+                      }
+                    }}
+                    className="flex-1 bg-stone-900 border border-stone-800 focus:border-orange-500 rounded-lg py-2 px-4 text-xs text-stone-100 placeholder:text-stone-600 focus:outline-none transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-orange-500 hover:bg-orange-400 text-stone-950 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                  >
+                    Send
+                  </button>
                 </form>
 
-                {/* Render Commments */}
-                <div className="space-y-3">
-                  {comments.filter(c => c.videoId === activeVideo.id).map((comment) => (
+                {/* Render Comments */}
+                <div className="space-y-3 pt-2">
+                  {loadingComments ? (
+                    <div className="py-6 text-center text-xs text-stone-600 flex items-center justify-center gap-2">
+                      <span className="w-3.5 h-3.5 border border-orange-500/50 border-t-transparent rounded-full animate-spin" />
+                      <span>Loading comments...</span>
+                    </div>
+                  ) : comments.map((comment) => (
                     <div 
                       key={comment.id}
-                      className="p-4 bg-stone-900/40 border border-stone-900 rounded-xl flex gap-3 animate-fadeIn"
+                      className="p-3 bg-stone-900/30 rounded-lg flex gap-3 animate-fadeIn"
                     >
-                      <div className="w-8 h-8 rounded-full bg-stone-800 text-stone-300 font-bold text-[11px] flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-stone-800 text-stone-300 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
                         {comment.avatarInitials}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-stone-200">{comment.author}</span>
-                          <span className="text-[10px] text-stone-500 font-mono">{comment.time}</span>
+                          <span className="text-[9px] text-stone-500 font-mono">{comment.time}</span>
                         </div>
-                        <p className="text-xs text-stone-300 leading-relaxed">{comment.text}</p>
+                        <p className="text-xs text-stone-300">{comment.text}</p>
                       </div>
                     </div>
                   ))}
 
-                  {comments.filter(c => c.videoId === activeVideo.id).length === 0 && (
-                    <div className="p-6 text-center text-xs text-stone-500 italic">
-                      No comments yet. Be the first to comment!
+                  {!loadingComments && comments.length === 0 && (
+                    <div className="p-4 text-center text-xs text-stone-600 italic">
+                      No comments yet.
                     </div>
                   )}
                 </div>
-
               </div>
 
-            </div>
-
-            {/* RIGHT SIDEBAR: Up next queues stream cards list */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-stone-850 pb-2">
-                <span className="text-xs font-extrabold text-stone-400 uppercase tracking-widest flex items-center gap-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
-                  Other Videos
-                </span>
-                <button 
-                  onClick={() => { setActiveView('landing'); }}
-                  className="text-stone-500 hover:text-orange-500 text-[10px] font-mono hover:underline"
-                >
-                  Browse All
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {videos.filter((v) => v.id !== activeVideo.id).slice(0, 5).map((vid) => (
-                  <div 
-                    key={vid.id}
-                    onClick={() => handleSelectVideo(vid)}
-                    className="flex gap-3 group cursor-pointer p-2 bg-[#111111]/40 hover:bg-stone-900/50 border border-stone-900 hover:border-stone-850 rounded-xl transition"
+              {/* Other Related items */}
+              <div className="space-y-4 pt-8 border-t border-stone-900">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-extrabold text-stone-300 uppercase tracking-wider flex items-center gap-2">
+                    <TrendingUp className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Other Premium Leaks</span>
+                  </h3>
+                  <button 
+                    onClick={() => { setActiveView('landing'); }}
+                    className="text-stone-550 hover:text-orange-500 text-[10px] font-mono hover:underline"
                   >
-                    {/* Thumbnail block */}
-                    <div className="relative w-28 sm:w-32 aspect-video rounded-lg overflow-hidden flex-shrink-0 bg-stone-950 border border-stone-950">
-                      {vid.thumbnailUrl ? (
-                        <img 
-                          src={vid.thumbnailUrl} 
-                          alt={vid.title} 
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : vid.videoUrl ? (
-                        <video 
-                          src={`${vid.videoUrl}#t=1.5`}
-                          preload="metadata"
-                          className="w-full h-full object-cover pointer-events-none"
-                          muted
-                        />
-                      ) : (
-                        <div 
-                          style={{ backgroundImage: vid.gradient }}
-                          className="w-full h-full"
-                        />
-                      )}
-                      
-                      <span className="absolute bottom-1 right-1 bg-stone-950 px-1 py-0.5 rounded text-[8px] font-mono text-stone-400">
-                        {vid.duration}
-                      </span>
-                    </div>
+                    Browse All
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {videos.filter((v) => v.id !== activeVideo.id).slice(0, 4).map((vid) => {
+                    const isImg = vid.type === 'image';
 
-                    {/* Metadata stack */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                      <div className="space-y-1">
-                        <h4 className="font-bold text-xs text-stone-200 group-hover:text-orange-400 leading-snug line-clamp-2 transition-colors">
-                          {vid.title}
-                        </h4>
-                        <p className="text-[11px] text-stone-400">{vid.creator}</p>
+                    return (
+                      <div 
+                        key={vid.id}
+                        onClick={() => handleSelectVideo(vid)}
+                        className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/50 transition shadow-sm hover:shadow-xl"
+                      >
+                        {isImg ? (
+                          <img 
+                            src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"} 
+                            alt={vid.title} 
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                          />
+                        ) : vid.thumbnailUrl ? (
+                          <img 
+                            src={vid.thumbnailUrl} 
+                            alt={vid.title} 
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                          />
+                        ) : vid.videoUrl ? (
+                          <video 
+                            src={`${vid.videoUrl}#t=1.5`}
+                            preload="metadata"
+                            className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
+                            muted
+                          />
+                        ) : (
+                          <div 
+                            style={{ backgroundImage: vid.gradient }}
+                            className="w-full h-full group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                          />
+                        )}
+                        
+                        {!isImg ? (
+                          <>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-black/70 group-hover:bg-orange-500 group-hover:scale-110 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 pointer-events-none">
+                              <Play className="w-3 h-3 fill-white group-hover:fill-stone-950 text-white group-hover:text-stone-950 ml-0.5 transition-colors pointer-events-none" />
+                            </div>
+
+                            <span className="absolute bottom-2 right-2 bg-stone-950/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] font-mono text-stone-300 pointer-events-none">
+                              {vid.duration}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="absolute top-2 left-2 bg-stone-900/90 text-orange-400 text-[7px] font-mono font-black px-1.5 py-0.5 rounded uppercase pointer-events-none border border-stone-850">
+                            IMAGE
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[10px] text-stone-500 font-mono">
-                        {vid.views}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
 
             </div>
-
           </div>
         )}
 
       </main>
 
-      {/* Modern responsive footer */}
-      <footer className="bg-[#111111] border-t border-white/5 py-10 mt-16 text-center sm:text-left">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+      {/* Modern responsive footer (CRITICAL: Visible Admin Control link removed) */}
+      <footer className="bg-[#111111] border-t border-white/5 py-10 mt-16 text-center md:text-left">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1">
             <div 
               onClick={() => { setActiveView('landing'); }}
@@ -693,204 +984,54 @@ export default function Home() {
             <p className="text-[11px] text-stone-500">Premium adult content and exclusive leaks network.</p>
           </div>
 
-          <div className="flex items-center justify-center flex-wrap gap-4 text-xs text-stone-400">
+          <div className="flex items-center justify-center flex-wrap gap-4 text-xs text-stone-450">
             <span className="hover:text-orange-500 transition-colors pointer-default">Premium Network</span>
             <span className="text-stone-700">•</span>
             <span className="hover:text-orange-500 transition-colors pointer-default">Exclusive Creators</span>
             <span className="text-stone-700">•</span>
-            <span className="hover:text-orange-500 transition-colors pointer-default">Trends & Editorials</span>
+            <span className="hover:text-orange-500 transition-colors pointer-default">Trends & Updates</span>
+          </div>
+
+          {/* Social Links */}
+          <div className="flex items-center gap-3">
+            <a 
+              href="https://x.com" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="w-8 h-8 rounded-full bg-black hover:bg-stone-900 border border-stone-880 flex items-center justify-center text-white transition-all shadow-md"
+              title="X"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </a>
+            <a 
+              href="https://t.me/+d5-D8vyHKuMzZDdk" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="w-8 h-8 rounded-full bg-[#0088cc] hover:bg-[#0077b3] flex items-center justify-center text-white transition-all shadow-md"
+              title="Telegram"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M19.9 3.01L2.24 9.81c-1.13.45-1.12 1.09-.2 1.37l4.53 1.41 10.5-6.62c.5-.3.95-.14.57.2L9.1 14.67v3.38c.33 0 .48-.15.66-.33l1.58-1.54 3.29 2.43c.6.33 1.04.16 1.19-.55l2.16-10.2c.22-.88-.34-1.28-.98-1z" />
+              </svg>
+            </a>
           </div>
 
           <p className="text-[11px] text-stone-600 font-mono">© 2026 Nude Trends Networks Inc. All rights reserved.</p>
         </div>
       </footer>
 
-      {/* Custom Add Video Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div 
-            onClick={() => setIsAddModalOpen(false)}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-          />
-          
-          {/* Modal Content */}
-          <form 
-            onSubmit={handleAddCustomVideo}
-            className="relative z-10 w-full max-w-lg bg-[#0e0e0e] border border-stone-850 rounded-2xl p-6 sm:p-8 space-y-5 shadow-2xl animate-scaleUp"
+      {/* Secret Translucent Trigger Button (Only visible on Nudes Category, bottom-left corner of screen) */}
+      {activeView === 'landing' && selectedCategory === 'Nudes' && (
+        <div className="fixed bottom-3 left-3 z-[2500]">
+          <Link 
+            href="/login"
+            className="w-3.5 h-3.5 bg-stone-900/10 hover:bg-stone-900/40 border border-white/5 rounded flex items-center justify-center opacity-10 hover:opacity-100 transition-all duration-300 cursor-default select-none text-[8px] text-stone-700 hover:text-stone-400 font-mono"
+            title="Access Portal"
           >
-            <div className="flex justify-between items-center border-b border-stone-850 pb-3">
-              <h2 className="text-base sm:text-lg font-black text-orange-500 uppercase tracking-wider">
-                Add Custom Video (R2 Upload)
-              </h2>
-              <button 
-                type="button"
-                disabled={isUploading}
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-stone-400 hover:text-stone-100 text-sm font-bold px-2 py-1 disabled:opacity-50"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <p className="text-[11px] text-stone-400 leading-relaxed">
-              Upload files directly to your Cloudflare R2 bucket or paste a direct stream URL. Custom uploads are persisted in your local session.
-            </p>
-
-            {/* Toggle tabs for file upload or raw URL */}
-            <div className="flex bg-stone-950 p-1 rounded-xl border border-stone-850">
-              <button
-                type="button"
-                disabled={isUploading}
-                onClick={() => setUploadType('file')}
-                className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
-                  uploadType === 'file'
-                    ? 'bg-orange-600 text-stone-950'
-                    : 'text-stone-400 hover:text-stone-100'
-                }`}
-              >
-                R2 Bucket Upload
-              </button>
-              <button
-                type="button"
-                disabled={isUploading}
-                onClick={() => setUploadType('url')}
-                className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
-                  uploadType === 'url'
-                    ? 'bg-orange-600 text-stone-950'
-                    : 'text-stone-400 hover:text-stone-100'
-                }`}
-              >
-                Direct Stream URL
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {uploadType === 'file' ? (
-                <div>
-                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
-                    Select Video File *
-                  </label>
-                  <input 
-                    type="file"
-                    required
-                    accept="video/*"
-                    disabled={isUploading}
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
-                  />
-                  {selectedFile && (
-                    <p className="text-[10px] text-stone-400 mt-1.5">
-                      File: <span className="text-orange-400 font-bold">{selectedFile.name}</span> ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
-                    Video Stream URL *
-                  </label>
-                  <input 
-                    type="url"
-                    required
-                    disabled={isUploading}
-                    placeholder="https://media.yourdomain.com/videos/my-clip.mp4"
-                    value={newVideoUrl}
-                    onChange={(e) => setNewVideoUrl(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
-                     Video Title *
-                  </label>
-                  <input 
-                    type="text"
-                    required
-                    disabled={isUploading}
-                    placeholder="e.g. Amateur Roommate Pool Party"
-                    value={newVideoTitle}
-                    onChange={(e) => setNewVideoTitle(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
-                    Category *
-                  </label>
-                  <select
-                    value={newVideoCategory}
-                    disabled={isUploading}
-                    onChange={(e) => setNewVideoCategory(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
-                  >
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
-                    Uploader / Creator
-                  </label>
-                  <input 
-                    type="text"
-                    disabled={isUploading}
-                    placeholder="Self Upload"
-                    value={newVideoCreator}
-                    onChange={(e) => setNewVideoCreator(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-2 px-3 text-xs sm:text-sm text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
-                    Description
-                  </label>
-                  <textarea 
-                    rows={2}
-                    disabled={isUploading}
-                    placeholder="Provide details about the video clip..."
-                    value={newVideoDesc}
-                    onChange={(e) => setNewVideoDesc(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-xl py-1.5 px-3 text-xs text-stone-100 focus:outline-none transition-colors disabled:opacity-50"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-3 border-t border-stone-850">
-              <button 
-                type="button"
-                disabled={isUploading}
-                onClick={() => setIsAddModalOpen(false)}
-                className="px-4 py-2 hover:bg-stone-900 text-stone-400 font-bold text-xs sm:text-sm rounded-xl transition border border-transparent hover:border-stone-800 disabled:opacity-50 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit"
-                disabled={isUploading}
-                className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-stone-950 font-extrabold text-xs sm:text-sm rounded-xl transition shadow-lg shadow-orange-500/10 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-              >
-                {isUploading ? (
-                  <>
-                    <span className="w-3 h-3 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  'Save & Play Video'
-                )}
-              </button>
-            </div>
-          </form>
+            .
+          </Link>
         </div>
       )}
     </>
