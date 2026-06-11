@@ -33,8 +33,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate a unique object key under the /videos path
-    const fileKey = `videos/${Date.now()}-${fileName.replace(/\s+/g, '_')}`;
+    // Generate a unique object key under the appropriate folder path
+    const isImage = fileType.toLowerCase().startsWith('image/');
+    const folder = isImage ? 'nudes' : 'videos';
+    const fileKey = `${folder}/${Date.now()}-${fileName.replace(/\s+/g, '_')}`;
 
     const command = new PutObjectCommand({
       Bucket: bucketName,

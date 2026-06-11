@@ -67,6 +67,12 @@ export default function AdminPage() {
   const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
   const [newInterestingTitle, setNewInterestingTitle] = useState('');
 
+  // Edit Video Details state
+  const [editingDetailsId, setEditingDetailsId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCreator, setEditCreator] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+
   // Auth gate check & data loader on mount
   useEffect(() => {
     // 1. Gating verification
@@ -251,6 +257,40 @@ export default function AdminPage() {
     } catch (e: any) {
       console.error(e);
       triggerNotification(`Failed to delete: ${e.message}`, 'error');
+    }
+  };
+
+  // Save edited video/image details
+  const handleSaveDetails = async (id: string) => {
+    try {
+      const targetVid = videos.find(v => v.id === id);
+      const res = await fetch('/api/videos/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          type: targetVid?.type,
+          title: editTitle.trim(),
+          creator: editCreator.trim(),
+          desc: editDesc.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setVideos(prev => prev.map(v => v.id === id ? {
+          ...v,
+          title: editTitle.trim(),
+          creator: editCreator.trim(),
+          desc: editDesc.trim()
+        } : v));
+        setEditingDetailsId(null);
+        triggerNotification('Media details updated successfully!');
+      } else {
+        throw new Error('Update failed');
+      }
+    } catch (e: any) {
+      console.error(e);
+      triggerNotification(`Update failed: ${e.message}`, 'error');
     }
   };
 
@@ -446,7 +486,7 @@ export default function AdminPage() {
       )}
 
       {/* Admin Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
 
         {/* TAB 1: MANAGE MEDIA ITEMS */}
         {activeTab === 'manage' && (
@@ -467,9 +507,9 @@ export default function AdminPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {trendingVideos.map(vid => (
-                  <div key={vid.id} className="bg-[#111111] border border-stone-850 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:border-stone-800 transition">
+                  <div key={vid.id} className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.07] p-3.5 rounded-xl flex flex-col sm:flex-row gap-3 hover:border-orange-500/20 transition-all shadow-sm">
                     
                     {/* Responsive image wrapper */}
                     <div className="w-full sm:w-32 h-44 sm:h-20 rounded-lg bg-stone-950 border border-stone-900 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
@@ -486,86 +526,182 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex-1 min-w-0 flex flex-col justify-between space-y-3 sm:space-y-0">
-                      <div>
-                        <div className="flex justify-between items-start gap-2">
-                          <h3 className="font-bold text-stone-200 text-xs sm:text-sm truncate flex-1" title={vid.title}>
-                            {vid.title}
-                          </h3>
-                          <button 
-                            onClick={() => handleDeleteMedia(vid.id, vid.videoUrl)}
-                            className="p-1 hover:text-red-500 text-stone-500 transition cursor-pointer flex-shrink-0"
-                            title="Delete Media"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-stone-500 font-mono mt-1">
-                          ID: {vid.id} | Creator: {vid.creator} | Views: {vid.views}
-                        </p>
-                      </div>
-
-                      {/* Interesting Titles Controls */}
-                      <div className="pt-2.5 border-t border-stone-900">
-                        <div className="flex justify-between items-center gap-2">
-                          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wide">
-                            Interesting Titles:
-                          </span>
-                          {editingVideoId !== vid.id ? (
-                            <button
-                              onClick={() => { setEditingVideoId(vid.id); setNewInterestingTitle(''); }}
-                              className="text-[9px] text-orange-500 hover:underline flex items-center gap-0.5"
-                            >
-                              <Plus className="w-2.5 h-2.5" /> Add Title
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setEditingVideoId(null)}
-                              className="text-[9px] text-stone-500 hover:underline"
+                      {editingDetailsId === vid.id ? (
+                        <div className="space-y-2.5 pt-1">
+                          <div>
+                            <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">Title</label>
+                            <input 
+                              type="text" 
+                              value={editTitle} 
+                              onChange={(e) => setEditTitle(e.target.value)} 
+                              className="w-full bg-stone-950 border border-stone-900/60 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-orange-500 text-stone-200"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">Creator</label>
+                              <input 
+                                type="text" 
+                                value={editCreator} 
+                                onChange={(e) => setEditCreator(e.target.value)} 
+                                className="w-full bg-stone-950 border border-stone-900/60 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-orange-500 text-stone-200"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[8px] font-mono font-bold text-stone-550 uppercase tracking-wider mb-0.5">Category</label>
+                              <select 
+                                value={vid.category} 
+                                onChange={async (e) => {
+                                  const newCat = e.target.value;
+                                  try {
+                                    const res = await fetch('/api/videos/edit', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ id: vid.id, category: newCat }),
+                                    });
+                                    if (res.ok) {
+                                      setVideos(prev => prev.map(v => v.id === vid.id ? { ...v, category: newCat } : v));
+                                      triggerNotification('Category updated!');
+                                    }
+                                  } catch (err) {}
+                                }} 
+                                className="w-full bg-stone-950 border border-stone-900/60 rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500 text-stone-200"
+                              >
+                                <option value="Trending Videos">Trending Videos</option>
+                                <option value="Nudes">Nudes</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">Description</label>
+                            <textarea 
+                              rows={2}
+                              value={editDesc} 
+                              onChange={(e) => setEditDesc(e.target.value)} 
+                              className="w-full bg-stone-950 border border-stone-900/60 rounded px-2.5 py-1 text-[11px] focus:outline-none focus:border-orange-500 text-stone-200"
+                            />
+                          </div>
+                          <div className="flex justify-end gap-1.5 pt-1.5 border-t border-stone-900">
+                            <button 
+                              type="button"
+                              onClick={() => setEditingDetailsId(null)}
+                              className="px-2.5 py-1 text-[10px] bg-stone-900 border border-stone-900/60 rounded hover:bg-stone-800 transition text-stone-400 font-bold"
                             >
                               Cancel
                             </button>
-                          )}
-                        </div>
-
-                        {/* List of Titles */}
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {(interestingTitlesMap[vid.id] || []).map((t, idx) => (
-                            <span 
-                              key={idx}
-                              className="bg-stone-900 border border-stone-850 px-2 py-0.5 rounded-full text-[9px] text-stone-300 flex items-center gap-1.5 group"
+                            <button 
+                              type="button"
+                              onClick={() => handleSaveDetails(vid.id)}
+                              className="px-3 py-1 text-[10px] bg-orange-600 hover:bg-orange-500 text-stone-950 rounded transition font-bold"
                             >
-                              <span>{t}</span>
-                              <button 
-                                onClick={() => handleDeleteInterestingTitle(vid.id, idx)}
-                                className="text-stone-600 hover:text-red-500 transition-colors"
-                              >
-                                <X className="w-2.5 h-2.5" />
-                              </button>
-                            </span>
-                          ))}
-                          {(!interestingTitlesMap[vid.id] || interestingTitlesMap[vid.id].length === 0) && (
-                            <span className="text-[9px] text-stone-600 italic">No custom titles added yet.</span>
-                          )}
-                        </div>
-
-                        {editingVideoId === vid.id && (
-                          <div className="flex gap-1.5 mt-2">
-                            <input 
-                              type="text"
-                              value={newInterestingTitle}
-                              onChange={(e) => setNewInterestingTitle(e.target.value)}
-                              placeholder="e.g. Hot new clip released!"
-                              className="flex-1 bg-stone-950 border border-stone-850 rounded-lg px-2.5 py-1 text-[10px] focus:outline-none focus:border-orange-500 text-stone-200"
-                            />
-                            <button
-                              onClick={() => handleSaveInterestingTitle(vid.id)}
-                              className="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-stone-950 text-[10px] font-bold rounded-lg"
-                            >
-                              Save
+                              Save Details
                             </button>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <div className="flex justify-between items-start gap-2">
+                              <h3 className="font-bold text-stone-200 text-xs sm:text-sm truncate flex-1" title={vid.title}>
+                                {vid.title}
+                              </h3>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingDetailsId(vid.id);
+                                    setEditTitle(vid.title);
+                                    setEditCreator(vid.creator);
+                                    setEditDesc(vid.desc || '');
+                                  }}
+                                  className="p-1 hover:text-orange-500 text-stone-500 transition cursor-pointer"
+                                  title="Edit Details"
+                                >
+                                  <Settings className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => handleDeleteMedia(vid.id, vid.videoUrl)}
+                                  className="p-1 hover:text-red-500 text-stone-500 transition cursor-pointer"
+                                  title="Delete Media"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-stone-500 font-mono mt-1">
+                              ID: {vid.id} | Creator: {vid.creator} | Views: {vid.views}
+                            </p>
+                          </div>
+
+                          {/* Interesting Titles Controls */}
+                          <div className="pt-2.5 border-t border-stone-900">
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wide">
+                                Interesting Titles:
+                              </span>
+                              {editingVideoId !== vid.id ? (
+                                <button
+                                  type="button"
+                                  onClick={() => { setEditingVideoId(vid.id); setNewInterestingTitle(''); }}
+                                  className="text-[9px] text-orange-500 hover:underline flex items-center gap-0.5"
+                                >
+                                  <Plus className="w-2.5 h-2.5" /> Add Title
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingVideoId(null)}
+                                  className="text-[9px] text-stone-500 hover:underline"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
+
+                            {/* List of Titles */}
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {(interestingTitlesMap[vid.id] || []).map((t, idx) => (
+                                <span 
+                                  key={idx}
+                                  className="bg-stone-900 border border-stone-900/50 px-2 py-0.5 rounded-full text-[9px] text-stone-300 flex items-center gap-1.5 group"
+                                >
+                                  <span>{t}</span>
+                                  <button 
+                                    type="button"
+                                    onClick={() => handleDeleteInterestingTitle(vid.id, idx)}
+                                    className="text-stone-600 hover:text-red-500 transition-colors"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </span>
+                              ))}
+                              {(!interestingTitlesMap[vid.id] || interestingTitlesMap[vid.id].length === 0) && (
+                                <span className="text-[9px] text-stone-600 italic">No custom titles added yet.</span>
+                              )}
+                            </div>
+
+                            {editingVideoId === vid.id && (
+                              <div className="flex gap-1.5 mt-2">
+                                <input 
+                                  type="text"
+                                  value={newInterestingTitle}
+                                  onChange={(e) => setNewInterestingTitle(e.target.value)}
+                                  placeholder="e.g. Hot new clip released!"
+                                  className="flex-1 bg-stone-950 border border-stone-900/50 rounded-lg px-2.5 py-1 text-[10px] focus:outline-none focus:border-orange-500 text-stone-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveInterestingTitle(vid.id)}
+                                  className="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-stone-950 text-[10px] font-bold rounded-lg"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -590,9 +726,9 @@ export default function AdminPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {nudesImages.map(img => (
-                  <div key={img.id} className="bg-[#111111] border border-stone-850 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:border-stone-800 transition">
+                  <div key={img.id} className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.07] p-3.5 rounded-xl flex flex-col sm:flex-row gap-3 hover:border-orange-500/20 transition-all shadow-sm">
                     
                     {/* Responsive image wrapper */}
                     <div className="w-full sm:w-32 h-44 sm:h-20 rounded-lg bg-stone-950 border border-stone-900 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
@@ -609,86 +745,182 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex-1 min-w-0 flex flex-col justify-between space-y-3 sm:space-y-0">
-                      <div>
-                        <div className="flex justify-between items-start gap-2">
-                          <h3 className="font-bold text-stone-200 text-xs sm:text-sm truncate flex-1" title={img.title}>
-                            {img.title}
-                          </h3>
-                          <button 
-                            onClick={() => handleDeleteMedia(img.id, img.imageUrl || img.thumbnailUrl)}
-                            className="p-1 hover:text-red-500 text-stone-500 transition cursor-pointer flex-shrink-0"
-                            title="Delete Media"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-stone-500 font-mono mt-1">
-                          ID: {img.id} | Creator: {img.creator} | Views: {img.views}
-                        </p>
-                      </div>
-
-                      {/* Interesting Titles Controls */}
-                      <div className="pt-2.5 border-t border-stone-900">
-                        <div className="flex justify-between items-center gap-2">
-                          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wide">
-                            Interesting Titles:
-                          </span>
-                          {editingVideoId !== img.id ? (
-                            <button
-                              onClick={() => { setEditingVideoId(img.id); setNewInterestingTitle(''); }}
-                              className="text-[9px] text-orange-500 hover:underline flex items-center gap-0.5"
-                            >
-                              <Plus className="w-2.5 h-2.5" /> Add Title
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setEditingVideoId(null)}
-                              className="text-[9px] text-stone-500 hover:underline"
+                      {editingDetailsId === img.id ? (
+                        <div className="space-y-2.5 pt-1">
+                          <div>
+                            <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">Title</label>
+                            <input 
+                              type="text" 
+                              value={editTitle} 
+                              onChange={(e) => setEditTitle(e.target.value)} 
+                              className="w-full bg-stone-950 border border-stone-900/60 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-orange-500 text-stone-200"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">Creator</label>
+                              <input 
+                                type="text" 
+                                value={editCreator} 
+                                onChange={(e) => setEditCreator(e.target.value)} 
+                                className="w-full bg-stone-950 border border-stone-900/60 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-orange-500 text-stone-200"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[8px] font-mono font-bold text-stone-550 uppercase tracking-wider mb-0.5">Category</label>
+                              <select 
+                                value={img.category} 
+                                onChange={async (e) => {
+                                  const newCat = e.target.value;
+                                  try {
+                                    const res = await fetch('/api/videos/edit', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ id: img.id, category: newCat }),
+                                    });
+                                    if (res.ok) {
+                                      setVideos(prev => prev.map(v => v.id === img.id ? { ...v, category: newCat } : v));
+                                      triggerNotification('Category updated!');
+                                    }
+                                  } catch (err) {}
+                                }} 
+                                className="w-full bg-stone-950 border border-stone-900/60 rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500 text-stone-200"
+                              >
+                                <option value="Trending Videos">Trending Videos</option>
+                                <option value="Nudes">Nudes</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">Description</label>
+                            <textarea 
+                              rows={2}
+                              value={editDesc} 
+                              onChange={(e) => setEditDesc(e.target.value)} 
+                              className="w-full bg-stone-950 border border-stone-900/60 rounded px-2.5 py-1 text-[11px] focus:outline-none focus:border-orange-500 text-stone-200"
+                            />
+                          </div>
+                          <div className="flex justify-end gap-1.5 pt-1.5 border-t border-stone-900">
+                            <button 
+                              type="button"
+                              onClick={() => setEditingDetailsId(null)}
+                              className="px-2.5 py-1 text-[10px] bg-stone-900 border border-stone-900/60 rounded hover:bg-stone-800 transition text-stone-400 font-bold"
                             >
                               Cancel
                             </button>
-                          )}
-                        </div>
-
-                        {/* List of Titles */}
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {(interestingTitlesMap[img.id] || []).map((t, idx) => (
-                            <span 
-                              key={idx}
-                              className="bg-stone-900 border border-stone-850 px-2 py-0.5 rounded-full text-[9px] text-stone-300 flex items-center gap-1.5 group"
+                            <button 
+                              type="button"
+                              onClick={() => handleSaveDetails(img.id)}
+                              className="px-3 py-1 text-[10px] bg-orange-600 hover:bg-orange-500 text-stone-950 rounded transition font-bold"
                             >
-                              <span>{t}</span>
-                              <button 
-                                onClick={() => handleDeleteInterestingTitle(img.id, idx)}
-                                className="text-stone-600 hover:text-red-500 transition-colors"
-                              >
-                                <X className="w-2.5 h-2.5" />
-                              </button>
-                            </span>
-                          ))}
-                          {(!interestingTitlesMap[img.id] || interestingTitlesMap[img.id].length === 0) && (
-                            <span className="text-[9px] text-stone-600 italic">No custom titles added yet.</span>
-                          )}
-                        </div>
-
-                        {editingVideoId === img.id && (
-                          <div className="flex gap-1.5 mt-2">
-                            <input 
-                              type="text"
-                              value={newInterestingTitle}
-                              onChange={(e) => setNewInterestingTitle(e.target.value)}
-                              placeholder="e.g. Check this out!"
-                              className="flex-1 bg-stone-950 border border-stone-850 rounded-lg px-2.5 py-1 text-[10px] focus:outline-none focus:border-orange-500 text-stone-200"
-                            />
-                            <button
-                              onClick={() => handleSaveInterestingTitle(img.id)}
-                              className="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-stone-950 text-[10px] font-bold rounded-lg"
-                            >
-                              Save
+                              Save Details
                             </button>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <div className="flex justify-between items-start gap-2">
+                              <h3 className="font-bold text-stone-200 text-xs sm:text-sm truncate flex-1" title={img.title}>
+                                {img.title}
+                              </h3>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingDetailsId(img.id);
+                                    setEditTitle(img.title);
+                                    setEditCreator(img.creator);
+                                    setEditDesc(img.desc || '');
+                                  }}
+                                  className="p-1 hover:text-orange-500 text-stone-500 transition cursor-pointer"
+                                  title="Edit Details"
+                                >
+                                  <Settings className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => handleDeleteMedia(img.id, img.imageUrl || img.thumbnailUrl)}
+                                  className="p-1 hover:text-red-500 text-stone-500 transition cursor-pointer"
+                                  title="Delete Media"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-stone-500 font-mono mt-1">
+                              ID: {img.id} | Creator: {img.creator} | Views: {img.views}
+                            </p>
+                          </div>
+
+                          {/* Interesting Titles Controls */}
+                          <div className="pt-2.5 border-t border-stone-900">
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wide">
+                                Interesting Titles:
+                              </span>
+                              {editingVideoId !== img.id ? (
+                                <button
+                                  type="button"
+                                  onClick={() => { setEditingVideoId(img.id); setNewInterestingTitle(''); }}
+                                  className="text-[9px] text-orange-500 hover:underline flex items-center gap-0.5"
+                                >
+                                  <Plus className="w-2.5 h-2.5" /> Add Title
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingVideoId(null)}
+                                  className="text-[9px] text-stone-500 hover:underline"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
+
+                            {/* List of Titles */}
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {(interestingTitlesMap[img.id] || []).map((t, idx) => (
+                                <span 
+                                  key={idx}
+                                  className="bg-stone-900 border border-stone-900/50 px-2 py-0.5 rounded-full text-[9px] text-stone-300 flex items-center gap-1.5 group"
+                                >
+                                  <span>{t}</span>
+                                  <button 
+                                    type="button"
+                                    onClick={() => handleDeleteInterestingTitle(img.id, idx)}
+                                    className="text-stone-600 hover:text-red-500 transition-colors"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </span>
+                              ))}
+                              {(!interestingTitlesMap[img.id] || interestingTitlesMap[img.id].length === 0) && (
+                                <span className="text-[9px] text-stone-600 italic">No custom titles added yet.</span>
+                              )}
+                            </div>
+
+                            {editingVideoId === img.id && (
+                              <div className="flex gap-1.5 mt-2">
+                                <input 
+                                  type="text"
+                                  value={newInterestingTitle}
+                                  onChange={(e) => setNewInterestingTitle(e.target.value)}
+                                  placeholder="e.g. Check this out!"
+                                  className="flex-1 bg-stone-950 border border-stone-900/50 rounded-lg px-2.5 py-1 text-[10px] focus:outline-none focus:border-orange-500 text-stone-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveInterestingTitle(img.id)}
+                                  className="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-stone-950 text-[10px] font-bold rounded-lg"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -703,8 +935,8 @@ export default function AdminPage() {
 
         {/* TAB 2: UPLOAD & CREATE MEDIA */}
         {activeTab === 'upload' && (
-          <div className="max-w-2xl mx-auto bg-[#111111] border border-stone-850 p-5 sm:p-8 rounded-2xl shadow-xl space-y-6 animate-fadeIn">
-            <div className="border-b border-stone-850 pb-4">
+          <div className="max-w-2xl mx-auto bg-white/[0.03] backdrop-blur-md border border-white/[0.06] p-5 sm:p-6 rounded-2xl shadow-xl space-y-5 animate-fadeIn">
+            <div className="border-b border-white/[0.07] pb-3">
               <h2 className="text-sm font-extrabold text-orange-400 uppercase tracking-widest flex items-center gap-2">
                 <PlusCircle className="w-5 h-5 text-orange-500" />
                 <span>Upload Media Item</span>
@@ -910,8 +1142,8 @@ export default function AdminPage() {
 
         {/* TAB 3: ADS MANAGER */}
         {activeTab === 'ads' && (
-          <div className="max-w-2xl mx-auto bg-[#111111] border border-stone-850 p-5 sm:p-8 rounded-2xl shadow-xl space-y-6 animate-fadeIn">
-            <div className="border-b border-stone-850 pb-4">
+          <div className="max-w-2xl mx-auto bg-white/[0.03] backdrop-blur-md border border-white/[0.06] p-5 sm:p-6 rounded-2xl shadow-xl space-y-5 animate-fadeIn">
+            <div className="border-b border-white/[0.07] pb-3">
               <h2 className="text-sm font-extrabold text-orange-400 uppercase tracking-widest flex items-center gap-2">
                 <Settings className="w-5 h-5 text-orange-500" />
                 <span>Ads Management</span>
@@ -924,7 +1156,7 @@ export default function AdminPage() {
             <form onSubmit={handleSaveAds} className="space-y-6">
               
               {/* SECTION A: BANNER ADS */}
-              <div className="space-y-4 p-4 bg-stone-950 rounded-xl border border-stone-850 animate-fadeIn">
+              <div className="space-y-3 p-4 bg-black/30 rounded-xl border border-white/[0.06] animate-fadeIn">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                     <Layout className="w-4 h-4 text-orange-500" />

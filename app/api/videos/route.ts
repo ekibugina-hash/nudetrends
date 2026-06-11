@@ -144,13 +144,57 @@ export async function GET() {
       }
     }
 
-    // 4. Merge JSON DB videos and R2 videos, making sure database videos can override R2 templates or prevent duplicates
-    // Deduplicate by URL or ID. We prefer dbVideo over R2 item to preserve edited metadata like titles, creators, descriptions, and interesting titles
-    const mergedVideos = [...activeDbVideos];
+    // 4. Helper to extract upload timestamp from ID or R2 key
+    const getMediaTimestamp = (item: Video): number => {
+      if (item.id.startsWith('custom-')) {
+        const parts = item.id.split('-');
+        if (parts.length > 1) {
+          const ts = parseInt(parts[1], 10);
+          if (!isNaN(ts)) return ts;
+        }
+      }
+      const decodedId = decodeURIComponent(item.id);
+      const match = decodedId.match(/(videos|nudes)\/(\d+)-/);
+      if (match && match[2]) {
+        const ts = parseInt(match[2], 10);
+        if (!isNaN(ts)) return ts;
+      }
+      return 0;
+    };
 
+    // 5. Merge JSON DB videos and R2 videos
+    const mergedVideos: Video[] = [];
+
+    // Process all active DB videos first, merging properties with R2 counterparts if matched
+    activeDbVideos.forEach((dbVid) => {
+      const r2Match = r2Videos.find((r2Vid) => {
+        const urlMatch = (dbVid.videoUrl && r2Vid.videoUrl && dbVid.videoUrl === r2Vid.videoUrl) ||
+                         (dbVid.imageUrl && r2Vid.imageUrl && dbVid.imageUrl === r2Vid.imageUrl);
+        return dbVid.id === r2Vid.id || urlMatch;
+      });
+
+      if (r2Match) {
+        mergedVideos.push({
+          ...r2Match,
+          ...dbVid,
+          videoUrl: dbVid.videoUrl || r2Match.videoUrl,
+          imageUrl: dbVid.imageUrl || r2Match.imageUrl,
+          id: dbVid.id || r2Match.id,
+          // DB skeleton might not have gradient/initials/views/time, inherit from R2 if missing
+          views: dbVid.views || r2Match.views,
+          time: dbVid.time || r2Match.time,
+          initials: dbVid.initials || r2Match.initials,
+          gradient: dbVid.gradient || r2Match.gradient,
+          duration: dbVid.duration || r2Match.duration
+        });
+      } else {
+        mergedVideos.push(dbVid);
+      }
+    });
+
+    // Add R2 videos that are not represented in the DB
     r2Videos.forEach((r2Vid) => {
-      // Check if this file is already registered in DB or deleted in DB
-      const existsInDb = dbVideos.some((dbVid: any) => {
+      const existsInDb = dbVideos.some((dbVid) => {
         const urlMatch = (dbVid.videoUrl && r2Vid.videoUrl && dbVid.videoUrl === r2Vid.videoUrl) ||
                          (dbVid.imageUrl && r2Vid.imageUrl && dbVid.imageUrl === r2Vid.imageUrl);
         return dbVid.id === r2Vid.id || urlMatch;
@@ -160,6 +204,9 @@ export async function GET() {
         mergedVideos.push(r2Vid);
       }
     });
+
+    // Sort the merged videos so new uploads appear at the top
+    mergedVideos.sort((a, b) => getMediaTimestamp(b) - getMediaTimestamp(a));
 
     return NextResponse.json({
       success: true,
