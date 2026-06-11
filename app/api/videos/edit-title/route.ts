@@ -41,7 +41,8 @@ export async function POST(request: Request) {
     if (index > -1) {
       dbVideos[index].interestingTitles = interestingTitles;
     } else {
-      // Create a skeleton entry for this video to store its custom titles
+      // Create a skeleton entry for this video/image to store its custom titles
+      // This happens when an R2-sourced item hasn't been explicitly saved to the DB yet
       dbVideos.push({
         id,
         title: '',

@@ -207,7 +207,7 @@ export default function AdminPage() {
     const targetVideo = videos.find(v => v.id === id);
     if (!targetVideo) return;
 
-    const currentTitles = targetVideo.interestingTitles || [];
+    const currentTitles = Array.isArray(targetVideo.interestingTitles) ? targetVideo.interestingTitles : [];
     const updatedTitles = [...currentTitles, newInterestingTitle.trim()];
 
     try {
@@ -216,18 +216,20 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, interestingTitles: updatedTitles }),
       });
+
+      const data = await res.json();
       
-      if (res.ok) {
+      if (res.ok && data.success) {
         setVideos(prev => prev.map(v => v.id === id ? { ...v, interestingTitles: updatedTitles } : v));
         setInterestingTitlesMap(prev => ({ ...prev, [id]: updatedTitles }));
         setNewInterestingTitle('');
         setEditingVideoId(null);
         triggerNotification('Interesting title added successfully!');
       } else {
-        throw new Error('Failed to save title');
+        throw new Error(data.error || data.details || 'Save failed');
       }
     } catch (e: any) {
-      console.error(e);
+      console.error('Save interesting title error:', e);
       triggerNotification(`Failed to save: ${e.message}`, 'error');
     }
   };

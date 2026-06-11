@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Video, Comment } from './types';
 import VideoPlayer from './components/VideoPlayer';
+import CommentsSection from './components/CommentsSection';
 
 function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -723,9 +724,24 @@ export default function Home() {
             
             {/* New Nude Updates Carousel */}
             {videos.length > 0 && (() => {
-              const latestItems = [...videos].reverse().slice(0, 12);
-              return latestItems.length > 0 ? (
+              // Only show items matching the active tab type
+              const typeFilter = selectedCategory === 'Trending Videos' ? 'video' : 'image';
+              const latestItems = [...videos]
+                .filter(v => v.type === typeFilter)
+                .slice(0, 12);
+              if (latestItems.length === 0) return null;
+              // Duplicate for seamless loop
+              const loopItems = [...latestItems, ...latestItems];
+              return (
                 <div className="space-y-3">
+                  <style dangerouslySetInnerHTML={{__html: `
+                    @keyframes marqueeScroll {
+                      0% { transform: translateX(0); }
+                      100% { transform: translateX(-50%); }
+                    }
+                    .marquee-track { animation: marqueeScroll 28s linear infinite; }
+                    .marquee-track:hover { animation-play-state: paused; }
+                  `}} />
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-extrabold text-orange-400 uppercase tracking-widest flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-orange-500 animate-pulse" />
@@ -735,17 +751,26 @@ export default function Home() {
                       {latestItems.length} new
                     </span>
                   </div>
-                  <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-stone-850 scrollbar-track-transparent snap-x">
-                    {latestItems.map((item) => {
-                      const isImg = item.type === 'image';
-                      return (
-                        <LatestDropCard key={item.id} item={item} isImg={isImg} onClick={() => handleSelectVideo(item)} />
-                      );
-                    })}
+                  {/* Auto-scrolling marquee strip */}
+                  <div className="overflow-hidden w-full">
+                    <div className="flex gap-3 marquee-track w-max">
+                      {loopItems.map((item, idx) => {
+                        const isImg = item.type === 'image';
+                        return (
+                          <LatestDropCard
+                            key={`${item.id}-${idx}`}
+                            item={item}
+                            isImg={isImg}
+                            onClick={() => handleSelectVideo(item)}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              ) : null;
+              );
             })()}
+
 
             {/* Video/Image Streams Header */}
             <div className="flex items-center justify-between border-b border-stone-850 pb-3">
@@ -867,16 +892,19 @@ export default function Home() {
               
               {/* Conditional Rendering: Image Viewer vs Video Player */}
               {activeVideo.type === 'image' ? (
-                <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-stone-800 shadow-xl flex items-center justify-center group select-none">
-                  <img 
-                    src={activeVideo.imageUrl || activeVideo.thumbnailUrl || "/images/v2.png"} 
-                    alt={activeVideo.title}
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute top-4 right-4 bg-stone-950/80 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/5 text-[9px] font-mono font-black text-orange-400 uppercase tracking-widest shadow">
-                    Premium Nude Image
+                <>
+                  <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-stone-800 shadow-xl flex items-center justify-center group select-none">
+                    <img 
+                      src={activeVideo.imageUrl || activeVideo.thumbnailUrl || "/images/v2.png"} 
+                      alt={activeVideo.title}
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute top-4 right-4 bg-stone-950/80 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/5 text-[9px] font-mono font-black text-orange-400 uppercase tracking-widest shadow">
+                      Premium Nude Image
+                    </div>
                   </div>
-                </div>
+                  <CommentsSection videoId={activeVideo.id} />
+                </>
               ) : (
                 <VideoPlayer video={activeVideo} />
               )}
