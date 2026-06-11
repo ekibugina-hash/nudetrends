@@ -10,6 +10,7 @@ async function readVideosFromFile(): Promise<any[]> {
     const data = await fs.readFile(VIDEOS_FILE_PATH, 'utf-8');
     return JSON.parse(data);
   } catch (err) {
+    console.error('Error reading videos file in edit-title:', err);
     return [];
   }
 }
@@ -20,6 +21,7 @@ async function writeVideosToFile(videos: any[]): Promise<boolean> {
     await fs.writeFile(VIDEOS_FILE_PATH, JSON.stringify(videos, null, 2), 'utf-8');
     return true;
   } catch (err) {
+    console.error('Error writing videos file in edit-title:', err);
     return false;
   }
 }

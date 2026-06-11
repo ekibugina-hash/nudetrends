@@ -226,7 +226,7 @@ export default function AdminPage() {
         setEditingVideoId(null);
         triggerNotification('Interesting title added successfully!');
       } else {
-        throw new Error(data.error || data.details || 'Save failed');
+        throw new Error(data.details ? `${data.error} (${data.details})` : (data.error || 'Save failed'));
       }
     } catch (e: any) {
       console.error('Save interesting title error:', e);
@@ -249,12 +249,13 @@ export default function AdminPage() {
         body: JSON.stringify({ id, interestingTitles: updatedTitles }),
       });
       
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
         setVideos(prev => prev.map(v => v.id === id ? { ...v, interestingTitles: updatedTitles } : v));
         setInterestingTitlesMap(prev => ({ ...prev, [id]: updatedTitles }));
         triggerNotification('Interesting title removed.');
       } else {
-        throw new Error('Failed to delete title');
+        throw new Error(data.details ? `${data.error} (${data.details})` : (data.error || 'Failed to delete title'));
       }
     } catch (e: any) {
       console.error(e);

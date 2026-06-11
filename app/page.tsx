@@ -122,91 +122,6 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
   );
 }
 
-function LatestDropCard({ item, isImg, onClick }: { item: Video; isImg: boolean; onClick: () => void }) {
-  const [hovered, setHovered] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  useEffect(() => {
-    if (!videoRef.current || isImg) return;
-    if (hovered) {
-      videoRef.current.play().catch(() => {});
-    } else {
-      videoRef.current.pause();
-      try { videoRef.current.currentTime = 0; } catch (_) {}
-    }
-  }, [hovered, isImg]);
-
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => !isImg && setHovered(true)}
-      onMouseLeave={() => !isImg && setHovered(false)}
-      className="w-44 sm:w-52 flex-shrink-0 snap-start bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/50 transition-all cursor-pointer group relative"
-      style={{ aspectRatio: isImg ? '3/4' : '16/9' }}
-    >
-      {/* Media */}
-      {isImg ? (
-        <img
-          src={item.imageUrl || item.thumbnailUrl || ''}
-          alt={item.title}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
-        />
-      ) : item.thumbnailUrl ? (
-        <>
-          <img
-            src={item.thumbnailUrl}
-            alt={item.title}
-            referrerPolicy="no-referrer"
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 pointer-events-none ${hovered ? 'opacity-0' : 'opacity-100'}`}
-          />
-          {item.videoUrl && (
-            <video
-              ref={videoRef}
-              src={item.videoUrl}
-              muted
-              playsInline
-              loop
-              preload="metadata"
-              className={`w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${hovered ? 'opacity-100' : 'opacity-0'}`}
-            />
-          )}
-        </>
-      ) : item.videoUrl ? (
-        <video
-          ref={videoRef}
-          src={item.videoUrl}
-          muted
-          playsInline
-          loop
-          preload="metadata"
-          className="w-full h-full object-cover pointer-events-none"
-        />
-      ) : (
-        <div className="w-full h-full" style={{ background: item.gradient || '#111' }} />
-      )}
-
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-3 space-y-0.5">
-        <span className={`text-[7px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full w-fit border ${isImg ? 'text-orange-400 bg-stone-950/80 border-orange-500/20' : 'text-sky-400 bg-stone-950/80 border-sky-500/20'}`}>
-          {isImg ? 'IMAGE' : 'VIDEO'}
-        </span>
-        <h4 className="text-stone-100 font-bold text-[11px] line-clamp-2 leading-snug group-hover:text-orange-400 transition-colors">
-          {item.title}
-        </h4>
-        <p className="text-[8px] text-stone-500 font-mono">{item.creator} • {item.time}</p>
-      </div>
-
-      {/* Play icon for videos */}
-      {!isImg && !hovered && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-black/70 group-hover:bg-orange-500 rounded-full flex items-center justify-center transition-colors pointer-events-none">
-          <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />
-        </div>
-      )}
-    </div>
-  );
-}
-
 
 export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -235,6 +150,34 @@ export default function Home() {
   const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
   const [popupAd, setPopupAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
   const [showPopupModal, setShowPopupModal] = useState(false);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll Latest Drops carousel
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el || isCarouselPaused) return;
+
+    const typeFilter = selectedCategory === 'Trending Videos' ? 'video' : 'image';
+    const latestCount = videos.filter(v => v.type === typeFilter).slice(0, 5).length;
+    if (latestCount <= 1) return;
+
+    const intervalId = setInterval(() => {
+      if (!el) return;
+      const cardWidth = el.firstElementChild?.clientWidth || 280;
+      const gap = 16;
+      const step = cardWidth + gap;
+
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft >= maxScroll - 10) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollTo({ left: el.scrollLeft + step, behavior: 'smooth' });
+      }
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [videos, selectedCategory, isCarouselPaused]);
 
   // Fetch videos on mount
   useEffect(() => {
@@ -728,20 +671,10 @@ export default function Home() {
               const typeFilter = selectedCategory === 'Trending Videos' ? 'video' : 'image';
               const latestItems = [...videos]
                 .filter(v => v.type === typeFilter)
-                .slice(0, 12);
+                .slice(0, 5);
               if (latestItems.length === 0) return null;
-              // Duplicate for seamless loop
-              const loopItems = [...latestItems, ...latestItems];
               return (
                 <div className="space-y-3">
-                  <style dangerouslySetInnerHTML={{__html: `
-                    @keyframes marqueeScroll {
-                      0% { transform: translateX(0); }
-                      100% { transform: translateX(-50%); }
-                    }
-                    .marquee-track { animation: marqueeScroll 28s linear infinite; }
-                    .marquee-track:hover { animation-play-state: paused; }
-                  `}} />
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-extrabold text-orange-400 uppercase tracking-widest flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-orange-500 animate-pulse" />
@@ -751,21 +684,26 @@ export default function Home() {
                       {latestItems.length} new
                     </span>
                   </div>
-                  {/* Auto-scrolling marquee strip */}
-                  <div className="overflow-hidden w-full">
-                    <div className="flex gap-3 marquee-track w-max">
-                      {loopItems.map((item, idx) => {
-                        const isImg = item.type === 'image';
-                        return (
-                          <LatestDropCard
-                            key={`${item.id}-${idx}`}
-                            item={item}
-                            isImg={isImg}
-                            onClick={() => handleSelectVideo(item)}
-                          />
-                        );
-                      })}
-                    </div>
+                  {/* Touch-scrollable, draggable, auto-scrolling container */}
+                  <div 
+                    ref={carouselRef}
+                    onMouseEnter={() => setIsCarouselPaused(true)}
+                    onMouseLeave={() => setIsCarouselPaused(false)}
+                    onTouchStart={() => setIsCarouselPaused(true)}
+                    onTouchEnd={() => {
+                      // Resume auto-scroll after 5 seconds of inactivity
+                      setTimeout(() => setIsCarouselPaused(false), 5000);
+                    }}
+                    className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-stone-850 scrollbar-track-transparent snap-x scroll-smooth"
+                  >
+                    {latestItems.map((item) => (
+                      <div key={item.id} className="w-60 sm:w-72 flex-shrink-0 snap-start">
+                        <VideoCard
+                          vid={item}
+                          onClick={() => handleSelectVideo(item)}
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               );
