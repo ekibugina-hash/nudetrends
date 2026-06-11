@@ -126,7 +126,7 @@ export async function GET() {
             views,
             time,
             duration: isVideo ? '03:45' : 'IMAGE',
-            desc: `Dynamic file loaded directly from Cloudflare R2 bucket folder. Keyspace path: ${key}`,
+            desc: '',
             initials: creator.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'PL',
             gradient: `linear-gradient(135deg, ${['#2b1201', '#1c0a00', '#140700', '#2d0f00', '#2c0e00', '#1d0701'][Math.floor(Math.random() * 6)]}, #000000)`,
             category,

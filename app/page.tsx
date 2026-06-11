@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { 
   Compass, 
@@ -24,6 +24,103 @@ import {
 import { Video, Comment } from './types';
 import VideoPlayer from './components/VideoPlayer';
 
+function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const isImage = vid.type === 'image';
+
+  useEffect(() => {
+    if (!videoRef.current || isImage) return;
+    if (isHovered) {
+      videoRef.current.play().catch(() => {});
+    } else {
+      videoRef.current.pause();
+      // Reset video to the beginning (first frame) when not hovered
+      try {
+        videoRef.current.currentTime = 0;
+      } catch (e) {}
+    }
+  }, [isHovered, isImage]);
+
+  return (
+    <div 
+      onClick={onClick}
+      onMouseEnter={() => !isImage && setIsHovered(true)}
+      onMouseLeave={() => !isImage && setIsHovered(false)}
+      onTouchStart={() => !isImage && setIsHovered(true)}
+      onTouchEnd={() => !isImage && setIsHovered(false)}
+      className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/50 transition shadow-sm hover:shadow-xl hover:-translate-y-0.5"
+    >
+      {/* Media source renderer */}
+      {isImage ? (
+        <img 
+          src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"} 
+          alt={vid.title}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+        />
+      ) : vid.thumbnailUrl ? (
+        <img 
+          src={vid.thumbnailUrl} 
+          alt={vid.title}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+        />
+      ) : vid.videoUrl ? (
+        <video 
+          ref={videoRef}
+          src={vid.videoUrl}
+          preload="metadata"
+          muted
+          playsInline
+          loop
+          className="w-full h-full object-cover pointer-events-none"
+        />
+      ) : (
+        <div 
+          style={{ backgroundImage: vid.gradient }}
+          className="w-full h-full transition-transform duration-300 group-hover:scale-105 pointer-events-none flex items-center justify-center relative"
+        >
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-stone-300 group-hover:text-orange-500 group-hover:scale-110 transition-all">
+            <span className="font-extrabold text-xs font-mono">{vid.initials || 'PL'}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay badges & Play interface */}
+      {!isImage ? (
+        <>
+          {!isHovered && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-black/70 group-hover:bg-orange-500 group-hover:scale-110 border border-white/10 group-hover:border-orange-500 rounded-full flex items-center justify-center transition-all pointer-events-none">
+              <Play className="w-4 h-4 fill-white group-hover:fill-stone-950 text-white group-hover:text-stone-950 ml-0.5 transition-colors pointer-events-none" />
+            </div>
+          )}
+
+          {/* Duration Badge */}
+          <span className="absolute bottom-2 right-2 bg-stone-950/80 backdrop-blur-sm border border-white/5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-stone-300 pointer-events-none">
+            {vid.duration}
+          </span>
+
+          {/* HD quality tag */}
+          {vid.videoUrl && (
+            <span className="absolute top-2 left-2 bg-orange-600/90 text-stone-950 text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded uppercase pointer-events-none">
+              HD
+            </span>
+          )}
+        </>
+      ) : (
+        <>
+          <span className="absolute top-2 left-2 bg-stone-900 border border-stone-880 text-orange-400 text-[8px] font-mono font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider pointer-events-none flex items-center gap-1 shadow">
+            <ImageIcon className="w-2.5 h-2.5" />
+            <span>Image</span>
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -34,7 +131,6 @@ export default function Home() {
   const [commentText, setCommentText] = useState('');
   const [commentName, setCommentName] = useState('My Nickname');
   const [isClient, setIsClient] = useState(false);
-  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [loadingVideos, setLoadingVideos] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -558,7 +654,7 @@ export default function Home() {
 
             {/* Grid Container */}
             {loadingVideos ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
                 {Array.from({ length: 10 }).map((_, idx) => (
                   <div key={idx} className="aspect-video bg-stone-900/40 border border-stone-850 rounded-xl animate-pulse flex items-center justify-center">
                     <span className="w-4 h-4 border border-orange-500/30 border-t-transparent rounded-full animate-spin" />
@@ -567,78 +663,14 @@ export default function Home() {
               </div>
             ) : paginatedVideos.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {paginatedVideos.map((vid) => {
-                    const isImage = vid.type === 'image';
-
-                    return (
-                      <div 
-                        key={vid.id}
-                        onClick={() => handleSelectVideo(vid)}
-                        className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/50 transition shadow-sm hover:shadow-xl hover:-translate-y-0.5"
-                      >
-                        {/* Media image source renderer */}
-                        {isImage ? (
-                          <img 
-                            src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"} 
-                            alt={vid.title}
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
-                          />
-                        ) : vid.thumbnailUrl ? (
-                          <img 
-                            src={vid.thumbnailUrl} 
-                            alt={vid.title}
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
-                          />
-                        ) : vid.videoUrl ? (
-                          <video 
-                            src={`${vid.videoUrl}#t=1.5`}
-                            preload="metadata"
-                            muted
-                            playsInline
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
-                          />
-                        ) : (
-                          <div 
-                            style={{ backgroundImage: vid.gradient }}
-                            className="w-full h-full transition-transform duration-300 group-hover:scale-105 pointer-events-none"
-                          />
-                        )}
-
-                        {/* Overlay badges & Play interface */}
-                        {!isImage ? (
-                          <>
-                            {/* Play button */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-black/70 group-hover:bg-orange-500 group-hover:scale-110 border border-white/10 group-hover:border-orange-500 rounded-full flex items-center justify-center transition-all pointer-events-none">
-                              <Play className="w-4 h-4 fill-white group-hover:fill-stone-950 text-white group-hover:text-stone-950 ml-0.5 transition-colors pointer-events-none" />
-                            </div>
-
-                            {/* Duration Badge */}
-                            <span className="absolute bottom-2 right-2 bg-stone-950/80 backdrop-blur-sm border border-white/5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-stone-300 pointer-events-none">
-                              {vid.duration}
-                            </span>
-
-                            {/* HD quality tag */}
-                            {vid.videoUrl && (
-                              <span className="absolute top-2 left-2 bg-orange-600/90 text-stone-950 text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded uppercase pointer-events-none">
-                                HD
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {/* Indicator for Image post */}
-                            <span className="absolute top-2 left-2 bg-stone-900 border border-stone-880 text-orange-400 text-[8px] font-mono font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider pointer-events-none flex items-center gap-1 shadow">
-                              <ImageIcon className="w-2.5 h-2.5" />
-                              <span>Image</span>
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {paginatedVideos.map((vid) => (
+                    <VideoCard 
+                      key={vid.id}
+                      vid={vid}
+                      onClick={() => handleSelectVideo(vid)}
+                    />
+                  ))}
                 </div>
 
                 {/* SLEEK PAGINATION CONTROLS */}
@@ -737,46 +769,7 @@ export default function Home() {
               )}
 
               {/* Action Bar Directly Under Player */}
-              <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-b border-stone-900">
-                <div className="relative">
-                  <button 
-                    onClick={() => setIsDownloadOpen(!isDownloadOpen)}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-stone-950 text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download</span>
-                    <ChevronDown className={`w-3 h-3 transition-transform ${isDownloadOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {isDownloadOpen && (
-                    <div className="absolute left-0 mt-1.5 w-40 bg-stone-900 border border-stone-800 rounded-lg shadow-xl py-1 z-50">
-                      {activeVideo.type === 'image' ? (
-                        <button
-                          onClick={() => {
-                            setIsDownloadOpen(false);
-                            triggerNotification('Downloading image in Full resolution...');
-                          }}
-                          className="w-full text-left px-4 py-2 text-xs text-stone-300 hover:bg-stone-800 hover:text-white transition-colors"
-                        >
-                          Full Resolution PNG
-                        </button>
-                      ) : (
-                        ['1080p (Full HD)', '720p (HD)', '480p (SD)'].map((quality) => (
-                          <button
-                            key={quality}
-                            onClick={() => {
-                              setIsDownloadOpen(false);
-                              triggerNotification(`Downloading video in ${quality}...`);
-                            }}
-                            className="w-full text-left px-4 py-2 text-xs text-stone-300 hover:bg-stone-800 hover:text-white transition-colors"
-                          >
-                            {quality}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-
+              <div className="flex flex-wrap items-center justify-end gap-4 py-2 border-b border-stone-900">
                 <button 
                   onClick={() => handleShare(activeVideo)}
                   className="px-4 py-2 bg-stone-900 hover:bg-stone-850 text-stone-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border border-stone-800 hover:border-stone-700 cursor-pointer"
@@ -795,9 +788,11 @@ export default function Home() {
                   <span>•</span>
                   <span>{activeVideo.time}</span>
                 </div>
-                <p className="text-xs text-stone-400 mt-2 leading-relaxed bg-stone-900/10 p-3 rounded-xl border border-stone-900/50">
-                  {activeVideo.desc}
-                </p>
+                {activeVideo.desc && (
+                  <p className="text-xs text-stone-400 mt-2 leading-relaxed bg-stone-900/10 p-3 rounded-xl border border-stone-900/50">
+                    {activeVideo.desc}
+                  </p>
+                )}
               </div>
 
               {/* Dynamic Interesting Titles inserted by Admin */}
@@ -905,63 +900,14 @@ export default function Home() {
                     Browse All
                   </button>
                 </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {videos.filter((v) => v.id !== activeVideo.id).slice(0, 4).map((vid) => {
-                    const isImg = vid.type === 'image';
-
-                    return (
-                      <div 
-                        key={vid.id}
-                        onClick={() => handleSelectVideo(vid)}
-                        className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/50 transition shadow-sm hover:shadow-xl"
-                      >
-                        {isImg ? (
-                          <img 
-                            src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"} 
-                            alt={vid.title} 
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
-                          />
-                        ) : vid.thumbnailUrl ? (
-                          <img 
-                            src={vid.thumbnailUrl} 
-                            alt={vid.title} 
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
-                          />
-                        ) : vid.videoUrl ? (
-                          <video 
-                            src={`${vid.videoUrl}#t=1.5`}
-                            preload="metadata"
-                            className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
-                            muted
-                          />
-                        ) : (
-                          <div 
-                            style={{ backgroundImage: vid.gradient }}
-                            className="w-full h-full group-hover:scale-105 transition-transform duration-300 pointer-events-none"
-                          />
-                        )}
-                        
-                        {!isImg ? (
-                          <>
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-black/70 group-hover:bg-orange-500 group-hover:scale-110 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 pointer-events-none">
-                              <Play className="w-3 h-3 fill-white group-hover:fill-stone-950 text-white group-hover:text-stone-950 ml-0.5 transition-colors pointer-events-none" />
-                            </div>
-
-                            <span className="absolute bottom-2 right-2 bg-stone-950/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] font-mono text-stone-300 pointer-events-none">
-                              {vid.duration}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="absolute top-2 left-2 bg-stone-900/90 text-orange-400 text-[7px] font-mono font-black px-1.5 py-0.5 rounded uppercase pointer-events-none border border-stone-850">
-                            IMAGE
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                   <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {videos.filter((v) => v.id !== activeVideo.id).slice(0, 4).map((vid) => (
+                    <VideoCard 
+                      key={vid.id}
+                      vid={vid}
+                      onClick={() => handleSelectVideo(vid)}
+                    />
+                  ))}
                 </div>
               </div>
 
