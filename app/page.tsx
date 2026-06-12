@@ -458,8 +458,8 @@ export default function Home() {
             onClick={() => { setActiveView('landing'); }}
             className="flex items-center gap-2 cursor-pointer group"
           >
-            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-orange-500/60 bg-white flex-shrink-0 shadow-md shadow-orange-500/20">
-              <img src="/logo.png" alt="Nude Trends" className="w-full h-full object-cover" />
+            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-orange-500/60 bg-white flex-shrink-0 shadow-md shadow-orange-500/20 p-0.5">
+              <img src="/logo.png" alt="Nude Trends" className="w-full h-full object-contain" />
             </div>
             <h1 className="font-extrabold text-white text-lg sm:text-xl tracking-tighter group-hover:text-orange-500 transition-colors uppercase m-0 flex items-center">
               Nude
@@ -539,8 +539,8 @@ export default function Home() {
               {/* Header and Close button */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full overflow-hidden bg-white border border-orange-500/60 flex-shrink-0">
-                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+                  <div className="w-7 h-7 rounded-full overflow-hidden bg-white border border-orange-500/60 flex-shrink-0 p-0.5">
+                    <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
                   </div>
                   <span className="font-extrabold text-white text-base tracking-tighter uppercase">
                     Nude
