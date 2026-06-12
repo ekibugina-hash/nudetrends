@@ -117,7 +117,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           playsInline
           loop
           onLoadedData={() => setIsVideoReady(true)}
-          className={`relative z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-500 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
+          className={`relative z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
         />
       ) : null}
 
@@ -453,11 +453,14 @@ export default function Home() {
       <header className="sticky top-0 z-[1000] bg-[#090909]/92 backdrop-blur-md border-b border-white/5">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           
-          {/* Brand Logo */}
+          {/* Brand Logo with circular image */}
           <div 
             onClick={() => { setActiveView('landing'); }}
-            className="flex items-center gap-1.5 cursor-pointer group"
+            className="flex items-center gap-2 cursor-pointer group"
           >
+            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-orange-500/60 flex-shrink-0 shadow-md shadow-orange-500/20">
+              <img src="/logo.png" alt="Nude Trends" className="w-full h-full object-cover" />
+            </div>
             <span className="font-extrabold text-white text-lg sm:text-xl tracking-tighter group-hover:text-orange-500 transition-colors uppercase">
               Nude
             </span>
@@ -474,6 +477,7 @@ export default function Home() {
                 placeholder="Search videos, models, or categories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                 className="w-full bg-stone-900/60 border border-stone-880 rounded-l-full py-2 pl-5 pr-12 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-550 transition-colors"
               />
               {searchQuery && (
@@ -534,7 +538,10 @@ export default function Home() {
               
               {/* Header and Close button */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full overflow-hidden border border-orange-500/60 flex-shrink-0">
+                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+                  </div>
                   <span className="font-extrabold text-white text-base tracking-tighter uppercase">
                     Nude
                   </span>
@@ -658,19 +665,29 @@ export default function Home() {
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 space-y-8">
 
         {/* Mobile Search input (displayed below header on small screens) */}
-        {activeView === 'landing' && (
-          <div className="md:hidden w-full flex items-center relative">
-            <input 
-              type="text"
-              placeholder="Search leaks, videos, photos..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-stone-900 border border-stone-850 rounded-xl py-2 pl-4 pr-10 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-550"
-            />
+          {activeView === 'landing' && (
+          <div className="md:hidden w-full flex items-center gap-2">
+            <div className="relative flex-1">
+              <input 
+                type="text"
+                placeholder="Search leaks, videos, photos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                className="w-full bg-stone-900 border border-stone-850 rounded-l-xl py-2.5 pl-4 pr-4 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-550"
+              />
+            </div>
+            <button
+              onClick={() => {}}
+              className="bg-orange-500 hover:bg-orange-400 text-stone-950 px-4 py-2.5 rounded-r-xl flex items-center justify-center transition-colors flex-shrink-0"
+              title="Search"
+            >
+              <Search className="w-4 h-4" />
+            </button>
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 text-stone-550 hover:text-stone-300 text-xs"
+                className="text-stone-500 hover:text-stone-300 text-xs font-bold px-2"
               >
                 ✕
               </button>
