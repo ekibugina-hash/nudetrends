@@ -141,7 +141,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       )}
 
       {/* Video Details Overlay */}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/80 to-transparent p-3 pt-12 flex flex-col justify-end pointer-events-none transition-opacity duration-300">
+      <div className="absolute z-20 inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/80 to-transparent p-3 pt-12 flex flex-col justify-end pointer-events-none transition-opacity duration-300">
         <h4 className="text-white text-[11px] font-bold line-clamp-2 group-hover:text-orange-500 transition-colors">
           {vid.title || 'Untitled Media'}
         </h4>
@@ -883,10 +883,13 @@ export default function Home() {
               )}
 
               {/* Action Bar Directly Under Player */}
-              <div className="flex flex-wrap items-center justify-end gap-4 py-2 border-b border-stone-900">
+              <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-b border-stone-900">
+                <h1 className="text-lg font-black text-white font-mono tracking-tight flex-1">
+                  {activeVideo.title || 'Untitled Media'}
+                </h1>
                 <button 
                   onClick={() => handleShare(activeVideo)}
-                  className="px-4 py-2 bg-stone-900 hover:bg-stone-850 text-stone-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border border-stone-800 hover:border-stone-700 cursor-pointer"
+                  className="px-4 py-2 bg-stone-900 hover:bg-stone-850 text-stone-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border border-stone-800 hover:border-stone-700 cursor-pointer flex-shrink-0"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span>Copy Link</span>
