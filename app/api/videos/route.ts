@@ -80,7 +80,7 @@ export async function GET() {
           }
 
           let category = isVideo ? 'Trending Videos' : 'Nudes';
-          if (key.toLowerCase().includes('/nudes/') || key.toLowerCase().startsWith('nudes/')) {
+          if (key.toLowerCase().includes('/nudes/') || key.toLowerCase().startsWith('nudes/') || key.toLowerCase().includes('/images/') || key.toLowerCase().startsWith('images/')) {
             category = 'Nudes';
           } else if (key.toLowerCase().includes('/videos/') || key.toLowerCase().startsWith('videos/')) {
             category = 'Trending Videos';
@@ -145,9 +145,9 @@ export async function GET() {
       }
       try {
         const decodedId = decodeURIComponent(item.id);
-        const match = decodedId.match(/(videos|nudes)\/(\d+)-/);
-        if (match && match[2]) {
-          const ts = parseInt(match[2], 10);
+        const idMatch = String(item.id).match(/(videos|nudes|images)\/(\d+)-/);
+        if (idMatch && idMatch[2]) {
+          const ts = parseInt(idMatch[2], 10);
           if (!isNaN(ts)) return ts;
         }
       } catch (e) {

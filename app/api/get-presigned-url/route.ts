@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     // Generate a unique object key under the appropriate folder path
     const ext = fileName.split('.').pop()?.toLowerCase() || '';
     const isImage = fileType.toLowerCase().startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-    const folder = isImage ? 'nudes' : 'videos';
+    const folder = isImage ? 'images' : 'videos';
     const fileKey = `${folder}/${Date.now()}-${fileName.replace(/\s+/g, '_')}`;
 
     const command = new PutObjectCommand({

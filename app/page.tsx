@@ -28,8 +28,25 @@ import CommentsSection from './components/CommentsSection';
 function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isInView, setIsInView] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const isImage = vid.type === 'image';
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px' }
+    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!videoRef.current || isImage) return;
@@ -46,6 +63,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
 
   return (
     <div 
+      ref={containerRef}
       onClick={onClick}
       onMouseEnter={() => !isImage && setIsHovered(true)}
       onMouseLeave={() => !isImage && setIsHovered(false)}
@@ -79,7 +97,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           referrerPolicy="no-referrer"
           className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
         />
-      ) : vid.videoUrl ? (
+      ) : vid.videoUrl && isInView ? (
         <video 
           ref={videoRef}
           src={`${vid.videoUrl}#t=0.001`}
