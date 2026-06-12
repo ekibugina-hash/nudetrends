@@ -5,14 +5,15 @@ import Script from "next/script";
 const SITE_URL = "https://nudetrends.afrozex.com";
 
 export const metadata: Metadata = {
-  title: "Nude Trends Uganda — #1 Premium Leaks, Nudes & Hot Girls Uganda",
-  description: "Watch exclusive premium leaked videos and nudes Uganda. The #1 source for hot sexy girls Uganda, porn UG, pornography Uganda, kampala escorts, ugandan nudes and trending adult content.",
+  title: "NudeTrends Status — Premium Trending VideosNudes Uganda",
+  description: "Watch exclusive trending premium videosnudes on NudeTrends. We provide a securenetwork for the best hot girls and adult status updates in Uganda.",
   keywords: [
     "nudes uganda", "porn ug", "pornography uganda", "hot sexy girls uganda",
     "kampala escorts", "ugandan nudes", "uganda leaks", "premium leaks uganda",
     "east africa porn", "ugandan sex videos", "kampala girls", "ugandan adult content",
     "nude trends", "trending nudes uganda", "uganda xxx", "uganda sex",
-    "kampala nudes", "ugandan leaked videos", "ug porn", "nude ug"
+    "kampala nudes", "ugandan leaked videos", "ug porn", "nude ug",
+    "nudetrends", "videosnudes", "status", "securenetwork", "trending"
   ],
   metadataBase: new URL(SITE_URL),
   alternates: {
@@ -104,6 +105,16 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }}
         />
+        {/* Google Analytics */}
+        <Script strategy="afterInteractive" src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX" />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-XXXXXXXXXX');
+          `}
+        </Script>
         {/* PostHog Analytics */}
         <Script id="posthog-init" strategy="afterInteractive">
           {`

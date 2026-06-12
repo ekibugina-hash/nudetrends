@@ -1044,6 +1044,27 @@ export default function Home() {
           </div>
         )}
 
+        {/* SEO Content Section for Headings & Keywords */}
+        {activeView === 'landing' && (
+          <section className="mt-16 pb-8 border-t border-stone-850 pt-8">
+            <h2 className="text-2xl font-black text-stone-200 mb-4">Welcome to NudeTrends - Premium Adult Entertainment</h2>
+            <div className="text-sm text-stone-400 space-y-4 max-w-4xl">
+              <p>
+                NudeTrends is the ultimate destination for premium adult entertainment. We curate the hottest trending leaked videosnudes, and exclusive content featuring the most beautiful girls. Our securenetwork ensures high-quality streaming and safe access to all our premium videos and photo galleries.
+              </p>
+              
+              <h3 className="text-lg font-bold text-stone-300 mt-6">Trending Status and Exclusive Leaks</h3>
+              <p>
+                Stay updated with the latest trends in the adult scene. Whether you are looking for amateur home videos, nude model showcases, or exclusive updates, we provide daily content drops. All media on this site is carefully selected to offer the best premium experience.
+              </p>
+              
+              <h4 className="text-base font-semibold text-stone-400 mt-4">Why Choose Nude Trends?</h4>
+              <p>
+                As the leading adult status platform, we guarantee fresh, high-quality nude content that is constantly trending. Enjoy unparalleled access to exclusive clips and models today.
+              </p>
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Modern responsive footer (CRITICAL: Visible Admin Control link removed) */}
