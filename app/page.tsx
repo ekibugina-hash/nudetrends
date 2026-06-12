@@ -70,7 +70,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       ) : vid.videoUrl ? (
         <video 
           ref={videoRef}
-          src={vid.videoUrl}
+          src={`${vid.videoUrl}#t=0.001`}
           preload="metadata"
           muted
           playsInline
@@ -174,7 +174,7 @@ export default function Home() {
       } else {
         el.scrollTo({ left: el.scrollLeft + step, behavior: 'smooth' });
       }
-    }, 5000);
+    }, 8000);
 
     return () => clearInterval(intervalId);
   }, [videos, selectedCategory, isCarouselPaused]);
@@ -691,13 +691,14 @@ export default function Home() {
                     onMouseLeave={() => setIsCarouselPaused(false)}
                     onTouchStart={() => setIsCarouselPaused(true)}
                     onTouchEnd={() => {
-                      // Resume auto-scroll after 5 seconds of inactivity
-                      setTimeout(() => setIsCarouselPaused(false), 5000);
+                      // Resume auto-scroll after 8 seconds of inactivity
+                      setTimeout(() => setIsCarouselPaused(false), 8000);
                     }}
-                    className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-stone-850 scrollbar-track-transparent snap-x scroll-smooth"
+                    className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-stone-850 scrollbar-track-transparent snap-x snap-mandatory scroll-smooth"
+                    style={{ touchAction: 'pan-x' }}
                   >
                     {latestItems.map((item) => (
-                      <div key={item.id} className="w-60 sm:w-72 flex-shrink-0 snap-start">
+                      <div key={item.id} className="w-[85vw] sm:w-[320px] md:w-[384px] flex-shrink-0 snap-center">
                         <VideoCard
                           vid={item}
                           onClick={() => handleSelectVideo(item)}

@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "id": "test-video",
+    "title": "",
+    "creator": "",
+    "views": "",
+    "time": "",
+    "duration": "",
+    "desc": "",
+    "initials": "",
+    "gradient": "",
+    "category": "",
+    "interestingTitles": [
+      "Test Title"
+    ],
+    "deleted": false
+  },
+  {
+    "id": "r2-videos%2Fexample.mp4",
+    "title": "",
+    "creator": "",
+    "views": "",
+    "time": "",
+    "duration": "",
+    "desc": "",
+    "initials": "",
+    "gradient": "",
+    "category": "",
+    "interestingTitles": [
+      "Awesome Video"
+    ],
+    "deleted": false
+  }
+]

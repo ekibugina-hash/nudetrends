@@ -146,6 +146,7 @@ export async function GET() {
 
     // 4. Helper to extract upload timestamp from ID or R2 key
     const getMediaTimestamp = (item: Video): number => {
+      if (!item || !item.id) return 0;
       if (item.id.startsWith('custom-')) {
         const parts = item.id.split('-');
         if (parts.length > 1) {
@@ -153,11 +154,15 @@ export async function GET() {
           if (!isNaN(ts)) return ts;
         }
       }
-      const decodedId = decodeURIComponent(item.id);
-      const match = decodedId.match(/(videos|nudes)\/(\d+)-/);
-      if (match && match[2]) {
-        const ts = parseInt(match[2], 10);
-        if (!isNaN(ts)) return ts;
+      try {
+        const decodedId = decodeURIComponent(item.id);
+        const match = decodedId.match(/(videos|nudes)\/(\d+)-/);
+        if (match && match[2]) {
+          const ts = parseInt(match[2], 10);
+          if (!isNaN(ts)) return ts;
+        }
+      } catch (e) {
+        return 0;
       }
       return 0;
     };

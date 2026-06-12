@@ -56,6 +56,10 @@ export async function POST(request: Request) {
         initials: '',
         gradient: '',
         category: '',
+        type: 'video', // Default to video, will be merged with R2 dynamically
+        videoUrl: '',
+        imageUrl: '',
+        thumbnailUrl: '',
         interestingTitles,
         deleted: false
       });
