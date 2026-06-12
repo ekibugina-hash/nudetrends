@@ -142,18 +142,9 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
 
       {/* Video Details Overlay */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/80 to-transparent p-3 pt-12 flex flex-col justify-end pointer-events-none transition-opacity duration-300">
-        <h4 className="text-white text-[11px] font-bold line-clamp-1 group-hover:text-orange-500 transition-colors">
+        <h4 className="text-white text-[11px] font-bold line-clamp-2 group-hover:text-orange-500 transition-colors">
           {vid.title || 'Untitled Media'}
         </h4>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-[9px] font-mono text-stone-400">{vid.creator || 'Premium Leak'}</span>
-          {!isImage && (
-            <>
-              <span className="text-[9px] text-stone-600">•</span>
-              <span className="text-[9px] font-mono text-stone-400">{vid.views}</span>
-            </>
-          )}
-        </div>
       </div>
     </div>
   );
