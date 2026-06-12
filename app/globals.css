@@ -1,1 +1,30 @@
 @import "tailwindcss";
+
+/* === Mobile & Performance Optimizations === */
+
+/* Kill the blue tap flash on all elements */
+* {
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
+}
+
+/* Smooth momentum-based scrolling on iOS */
+html {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* GPU-accelerate video and image rendering */
+video, img {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Prevent text selection flicker on taps */
+button, a, [role="button"] {
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}

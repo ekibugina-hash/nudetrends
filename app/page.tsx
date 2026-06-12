@@ -29,37 +29,44 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  const [isMobilePeeking, setIsMobilePeeking] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isImage = vid.type === 'image';
 
   useEffect(() => {
     if (!containerRef.current) return;
+    // Detect if it's a touch device
+    const isTouchDevice = window.matchMedia('(hover: none)').matches;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          observer.disconnect();
+          // On mobile, start a 2-second silent video peek when card comes into view
+          if (isTouchDevice && !isImage) {
+            setIsMobilePeeking(true);
+            setTimeout(() => setIsMobilePeeking(false), 2500);
+          }
         }
       },
-      { rootMargin: '300px' }
+      { threshold: 0.5 }
     );
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [isImage]);
 
   useEffect(() => {
     if (!videoRef.current || isImage) return;
-    if (isHovered) {
+    if (isHovered || isMobilePeeking) {
       videoRef.current.play().catch(() => {});
     } else {
       videoRef.current.pause();
-      // Reset video to the beginning (first frame) when not hovered
       try {
         videoRef.current.currentTime = 0;
       } catch (e) {}
     }
-  }, [isHovered, isImage]);
+  }, [isHovered, isMobilePeeking, isImage]);
 
   return (
     <div 
@@ -67,7 +74,8 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       onClick={onClick}
       onMouseEnter={() => !isImage && setIsHovered(true)}
       onMouseLeave={() => !isImage && setIsHovered(false)}
-      className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/50 transition shadow-sm hover:shadow-xl hover:-translate-y-0.5"
+      className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/30 transition-all duration-200 shadow-sm hover:shadow-lg"
+      style={{ WebkitTapHighlightColor: 'transparent' }}
     >
       {/* Premium Gradient Fallback (Always renders behind video so no black cards) */}
       <div 
@@ -139,8 +147,8 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       )}
 
       {/* Video Details Overlay */}
-      <div className="absolute z-20 inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/80 to-transparent p-3 pt-12 flex flex-col justify-end pointer-events-none transition-opacity duration-300">
-        <h4 className="text-white text-[11px] font-bold line-clamp-2 group-hover:text-orange-500 transition-colors">
+      <div className="absolute z-20 inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/70 to-transparent p-3 pt-14 flex flex-col justify-end pointer-events-none">
+        <h4 className="text-white text-[13px] font-bold line-clamp-2 group-hover:text-orange-400 transition-colors leading-snug">
           {vid.title || 'Untitled Media'}
         </h4>
       </div>
@@ -763,8 +771,8 @@ export default function Home() {
 
             {/* Grid Container */}
             {loadingVideos ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
-                {Array.from({ length: 10 }).map((_, idx) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+                {Array.from({ length: 8 }).map((_, idx) => (
                   <div key={idx} className="aspect-video bg-stone-900/40 border border-stone-850 rounded-xl animate-pulse flex items-center justify-center">
                     <span className="w-4 h-4 border border-orange-500/30 border-t-transparent rounded-full animate-spin" />
                   </div>
@@ -772,7 +780,7 @@ export default function Home() {
               </div>
             ) : paginatedVideos.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
                   {paginatedVideos.map((vid) => (
                     <VideoCard 
                       key={vid.id}
