@@ -1,9 +1,6 @@
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { Video } from '../types';
-import fs from 'fs/promises';
-import path from 'path';
-
-const VIDEOS_FILE_PATH = path.join(process.cwd(), 'data', 'videos.json');
+import { readDb } from '../lib/db';
 
 // Initialize Cloudflare R2 S3 Client
 const s3 = new S3Client({
@@ -16,12 +13,7 @@ const s3 = new S3Client({
 });
 
 async function readVideosFromFile(): Promise<Video[]> {
-  try {
-    const data = await fs.readFile(VIDEOS_FILE_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (err) {
-    return [];
-  }
+  return await readDb('videos.json');
 }
 
 export async function GET() {

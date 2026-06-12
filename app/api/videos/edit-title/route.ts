@@ -1,37 +1,12 @@
 import { NextResponse } from 'next/server';
-import { Video } from '../../../types';
-import fs from 'fs/promises';
-import path from 'path';
-
-const VIDEOS_FILE_PATH = path.join(process.cwd(), 'data', 'videos.json');
+import { readDb, writeDb } from '../../lib/db';
 
 async function readVideosFromFile(): Promise<any[]> {
-  try {
-    const data = await fs.readFile(VIDEOS_FILE_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error('Error reading videos file in edit-title:', err);
-    return [];
-  }
+  return await readDb('videos.json');
 }
 
-async function writeVideosToFile(videos: any[], retries = 3): Promise<void> {
-  let lastError;
-  for (let i = 0; i < retries; i++) {
-    try {
-      await fs.mkdir(path.dirname(VIDEOS_FILE_PATH), { recursive: true });
-      await fs.writeFile(VIDEOS_FILE_PATH, JSON.stringify(videos, null, 2), 'utf-8');
-      return;
-    } catch (err: any) {
-      lastError = err;
-      if ((err.code === 'EBUSY' || err.code === 'EPERM') && i < retries - 1) {
-        await new Promise(res => setTimeout(res, 100 * (i + 1))); // Wait and retry
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw lastError;
+async function writeVideosToFile(videos: any[]): Promise<void> {
+  await writeDb('videos.json', videos);
 }
 
 export async function POST(request: Request) {

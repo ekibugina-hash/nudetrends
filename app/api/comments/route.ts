@@ -1,23 +1,14 @@
 import { NextResponse } from 'next/server';
 import { Comment } from '../../types';
-import fs from 'fs/promises';
-import path from 'path';
-
-const COMMENTS_FILE_PATH = path.join(process.cwd(), 'data', 'comments.json');
+import { readDb, writeDb } from '../../lib/db';
 
 async function readCommentsFromFile(): Promise<Comment[]> {
-  try {
-    const data = await fs.readFile(COMMENTS_FILE_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (err) {
-    return [];
-  }
+  return await readDb('comments.json');
 }
 
 async function writeCommentsToFile(comments: Comment[]): Promise<boolean> {
   try {
-    await fs.mkdir(path.dirname(COMMENTS_FILE_PATH), { recursive: true });
-    await fs.writeFile(COMMENTS_FILE_PATH, JSON.stringify(comments, null, 2), 'utf-8');
+    await writeDb('comments.json', comments);
     return true;
   } catch (err) {
     return false;

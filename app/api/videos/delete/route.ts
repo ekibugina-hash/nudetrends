@@ -3,8 +3,7 @@ import { NextResponse } from 'next/server';
 import { Video } from '../../../types';
 import fs from 'fs/promises';
 import path from 'path';
-
-const VIDEOS_FILE_PATH = path.join(process.cwd(), 'data', 'videos.json');
+import { readDb, writeDb } from '../../../lib/db';
 
 // Initialize Cloudflare R2 S3 Client
 const s3 = new S3Client({
@@ -17,20 +16,14 @@ const s3 = new S3Client({
 });
 
 async function readVideosFromFile(): Promise<any[]> {
-  try {
-    const data = await fs.readFile(VIDEOS_FILE_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (err) {
-    return [];
-  }
+  return await readDb('videos.json');
 }
 
 async function writeVideosToFile(videos: any[]): Promise<boolean> {
   try {
-    await fs.mkdir(path.dirname(VIDEOS_FILE_PATH), { recursive: true });
-    await fs.writeFile(VIDEOS_FILE_PATH, JSON.stringify(videos, null, 2), 'utf-8');
+    await writeDb('videos.json', videos);
     return true;
-  } catch (err) {
+  } catch (err: any) {
     return false;
   }
 }

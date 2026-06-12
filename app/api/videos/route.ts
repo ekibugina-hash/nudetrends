@@ -1,10 +1,7 @@
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { NextResponse } from 'next/server';
 import { Video } from '../../types';
-import fs from 'fs/promises';
-import path from 'path';
-
-const VIDEOS_FILE_PATH = path.join(process.cwd(), 'data', 'videos.json');
+import { readDb, writeDb } from '../../lib/db';
 
 // Initialize Cloudflare R2 S3 Client
 const s3 = new S3Client({
@@ -17,31 +14,16 @@ const s3 = new S3Client({
 });
 
 async function readVideosFromFile(): Promise<Video[]> {
-  try {
-    const data = await fs.readFile(VIDEOS_FILE_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error('Error reading videos.json:', err);
-    return [];
-  }
+  return await readDb('videos.json');
 }
 
-async function writeVideosToFile(videos: any[], retries = 3): Promise<boolean> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      await fs.mkdir(path.dirname(VIDEOS_FILE_PATH), { recursive: true });
-      await fs.writeFile(VIDEOS_FILE_PATH, JSON.stringify(videos, null, 2), 'utf-8');
-      return true;
-    } catch (err: any) {
-      if ((err.code === 'EBUSY' || err.code === 'EPERM') && i < retries - 1) {
-        await new Promise(res => setTimeout(res, 100 * (i + 1))); // Wait and retry
-        continue;
-      }
-      console.error('Error writing videos file in videos/route:', err);
-      return false;
-    }
+async function writeVideosToFile(videos: any[]): Promise<boolean> {
+  try {
+    await writeDb('videos.json', videos);
+    return true;
+  } catch (err: any) {
+    return false;
   }
-  return false;
 }
 
 export async function GET() {
