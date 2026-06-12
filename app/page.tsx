@@ -458,15 +458,15 @@ export default function Home() {
             onClick={() => { setActiveView('landing'); }}
             className="flex items-center gap-2 cursor-pointer group"
           >
-            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-orange-500/60 flex-shrink-0 shadow-md shadow-orange-500/20">
+            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-orange-500/60 bg-white flex-shrink-0 shadow-md shadow-orange-500/20">
               <img src="/logo.png" alt="Nude Trends" className="w-full h-full object-cover" />
             </div>
-            <span className="font-extrabold text-white text-lg sm:text-xl tracking-tighter group-hover:text-orange-500 transition-colors uppercase">
+            <h1 className="font-extrabold text-white text-lg sm:text-xl tracking-tighter group-hover:text-orange-500 transition-colors uppercase m-0 flex items-center">
               Nude
-            </span>
-            <span className="bg-orange-500 text-black px-2 py-0.5 rounded-md font-black text-sm sm:text-base tracking-tight shadow-md shadow-orange-500/10">
-              TRENDS
-            </span>
+              <span className="bg-orange-500 text-black px-2 py-0.5 rounded-md font-black text-sm sm:text-base tracking-tight shadow-md shadow-orange-500/10 ml-2">
+                TRENDS
+              </span>
+            </h1>
           </div>
 
           {/* Core Central Search Wrap (hidden on mobile header) */}
@@ -539,7 +539,7 @@ export default function Home() {
               {/* Header and Close button */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full overflow-hidden border border-orange-500/60 flex-shrink-0">
+                  <div className="w-7 h-7 rounded-full overflow-hidden bg-white border border-orange-500/60 flex-shrink-0">
                     <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
                   </div>
                   <span className="font-extrabold text-white text-base tracking-tighter uppercase">

@@ -22,11 +22,7 @@ interface VideoPlayerProps {
 }
 
 const QUALITY_OPTIONS = [
-  { label: '1080p HD', value: 1080 },
-  { label: '720p HD', value: 720 },
-  { label: '480p', value: 480 },
-  { label: '360p', value: 360 },
-  { label: '240p', value: 240 },
+  { label: 'Original Quality (HD)', value: 1080 },
 ];
 
 export default function VideoPlayer({ video }: VideoPlayerProps) {
