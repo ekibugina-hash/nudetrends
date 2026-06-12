@@ -120,7 +120,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           )}
 
           {/* Duration Badge */}
-          <span className="absolute bottom-2 right-2 bg-stone-950/80 backdrop-blur-sm border border-white/5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-stone-300 pointer-events-none">
+          <span className="absolute top-2 right-2 bg-stone-950/80 backdrop-blur-sm border border-white/5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-stone-300 pointer-events-none">
             {vid.duration}
           </span>
 
@@ -133,12 +133,28 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
         </>
       ) : (
         <>
-          <span className="absolute top-2 left-2 bg-stone-900 border border-stone-880 text-orange-400 text-[8px] font-mono font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider pointer-events-none flex items-center gap-1 shadow">
+          <span className="absolute top-2 left-2 bg-stone-900 border border-stone-800 text-orange-400 text-[8px] font-mono font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider pointer-events-none flex items-center gap-1 shadow">
             <ImageIcon className="w-2.5 h-2.5" />
             <span>Image</span>
           </span>
         </>
       )}
+
+      {/* Video Details Overlay */}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/80 to-transparent p-3 pt-12 flex flex-col justify-end pointer-events-none transition-opacity duration-300">
+        <h4 className="text-white text-[11px] font-bold line-clamp-1 group-hover:text-orange-500 transition-colors">
+          {vid.title || 'Untitled Media'}
+        </h4>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="text-[9px] font-mono text-stone-400">{vid.creator || 'Premium Leak'}</span>
+          {!isImage && (
+            <>
+              <span className="text-[9px] text-stone-600">•</span>
+              <span className="text-[9px] font-mono text-stone-400">{vid.views}</span>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -183,21 +199,27 @@ export default function Home() {
     const latestCount = videos.filter(v => v.type === typeFilter).slice(0, 5).length;
     if (latestCount <= 1) return;
 
-    const intervalId = setInterval(() => {
+    let animationId: number;
+    let lastTime = performance.now();
+    
+    const scroll = (time: number) => {
       if (!el) return;
-      const cardWidth = el.firstElementChild?.clientWidth || 280;
-      const gap = 16;
-      const step = cardWidth + gap;
-
+      const deltaTime = time - lastTime;
+      // Scroll smoothly: ~20px per second
+      el.scrollLeft += deltaTime * 0.02;
+      
       const maxScroll = el.scrollWidth - el.clientWidth;
-      if (el.scrollLeft >= maxScroll - 10) {
-        el.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        el.scrollTo({ left: el.scrollLeft + step, behavior: 'smooth' });
+      if (el.scrollLeft >= maxScroll - 1) {
+        // Soft reset to beginning when reaching the end
+        el.scrollLeft = 0;
       }
-    }, 8000);
+      
+      lastTime = time;
+      animationId = requestAnimationFrame(scroll);
+    };
 
-    return () => clearInterval(intervalId);
+    animationId = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationId);
   }, [videos, selectedCategory, isCarouselPaused]);
 
   // Fetch videos on mount
@@ -715,11 +737,11 @@ export default function Home() {
                       // Resume auto-scroll after 8 seconds of inactivity
                       setTimeout(() => setIsCarouselPaused(false), 8000);
                     }}
-                    className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-stone-850 scrollbar-track-transparent snap-x snap-mandatory scroll-smooth"
+                    className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-stone-850 scrollbar-track-transparent"
                     style={{ touchAction: 'pan-x' }}
                   >
                     {latestItems.map((item) => (
-                      <div key={item.id} className="w-[85vw] sm:w-[320px] md:w-[384px] flex-shrink-0 snap-center">
+                      <div key={item.id} className="w-[85vw] sm:w-[320px] md:w-[384px] flex-shrink-0">
                         <VideoCard
                           vid={item}
                           onClick={() => handleSelectVideo(item)}

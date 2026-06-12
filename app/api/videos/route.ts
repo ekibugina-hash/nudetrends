@@ -171,6 +171,10 @@ export async function GET() {
         mergedVideos.push({
           ...r2Match,
           ...dbVid,
+          title: dbVid.title || r2Match.title,
+          creator: dbVid.creator || r2Match.creator,
+          category: dbVid.category || r2Match.category,
+          type: dbVid.type || r2Match.type,
           videoUrl: dbVid.videoUrl || r2Match.videoUrl,
           imageUrl: dbVid.imageUrl || r2Match.imageUrl,
           id: dbVid.id || r2Match.id,
