@@ -117,23 +117,11 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           playsInline
           loop
           onLoadedData={() => setIsVideoReady(true)}
-          className={`relative z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-500 ${(isVideoReady && (isHovered || isMobilePeeking)) ? 'opacity-100' : 'opacity-0'}`}
+          className={`relative z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-500 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
         />
       ) : null}
 
-      {/* HD / Image badge - z-30 always on top */}
-      {!isImage ? (
-        <span className="absolute z-30 top-2 left-2 bg-orange-600 text-stone-950 text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded uppercase pointer-events-none select-none">
-          HD
-        </span>
-      ) : (
-        <span className="absolute z-30 top-2 left-2 bg-stone-900/90 border border-stone-700 text-orange-400 text-[8px] font-mono font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider pointer-events-none flex items-center gap-1">
-          <ImageIcon className="w-2.5 h-2.5" />
-          <span>Image</span>
-        </span>
-      )}
-
-      {/* Duration badge - z-30 top right */}
+      {/* Duration badge - top right */}
       {!isImage && (
         <span className="absolute z-30 top-2 right-2 bg-stone-950/80 border border-white/5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-stone-300 pointer-events-none select-none">
           {vid.duration}
