@@ -184,7 +184,9 @@ export async function GET() {
           duration: dbVid.duration || r2Match.duration
         });
       } else {
-        mergedVideos.push(dbVid);
+        if (dbVid.videoUrl || dbVid.imageUrl) {
+          mergedVideos.push(dbVid);
+        }
       }
     });
 

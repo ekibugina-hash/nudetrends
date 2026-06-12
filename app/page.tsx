@@ -67,8 +67,6 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       onClick={onClick}
       onMouseEnter={() => !isImage && setIsHovered(true)}
       onMouseLeave={() => !isImage && setIsHovered(false)}
-      onTouchStart={() => !isImage && setIsHovered(true)}
-      onTouchEnd={() => !isImage && setIsHovered(false)}
       className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/50 transition shadow-sm hover:shadow-xl hover:-translate-y-0.5"
     >
       {/* Premium Gradient Fallback (Always renders behind video so no black cards) */}
@@ -100,7 +98,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       ) : vid.videoUrl && isInView ? (
         <video 
           ref={videoRef}
-          src={`${vid.videoUrl}#t=0.001`}
+          src={`${vid.videoUrl}#t=0.1`}
           preload="metadata"
           muted
           playsInline
