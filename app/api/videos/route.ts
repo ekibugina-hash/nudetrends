@@ -64,16 +64,14 @@ export async function GET() {
           if (!isVideo && !isImage) continue;
 
           const parts = key.split('/');
-          const filenameWithExt = parts[parts.length - 1];
-          const filename = filenameWithExt.substring(0, filenameWithExt.lastIndexOf('.')) || filenameWithExt;
-
-          const title = filename
-            .replace(/[_-]+/g, ' ')
-            .trim()
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-
+          
+          // Extract title from filename (remove extension and cleanup)
+          let title = key.split('/').pop()?.split('.')[0] || 'Untitled';
+          title = title.replace(/[-_]/g, ' ');
+          // Strip out quality tags like SD, HD, 1080p, 720p from the title
+          title = title.replace(/\b(SD|HD|1080p|720p|4K)\b/gi, '').trim();
+          title = title.replace(/\s+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          
           let creator = 'Premium Leak';
           if (parts.length >= 3) {
             creator = parts[1];

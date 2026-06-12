@@ -196,8 +196,8 @@ export default function Home() {
     const scroll = (time: number) => {
       if (!el) return;
       const deltaTime = time - lastTime;
-      // Scroll smoothly: ~20px per second
-      el.scrollLeft += deltaTime * 0.02;
+      // Scroll smoothly: ~50px per second
+      el.scrollLeft += deltaTime * 0.05;
       
       const maxScroll = el.scrollWidth - el.clientWidth;
       if (el.scrollLeft >= maxScroll - 1) {
