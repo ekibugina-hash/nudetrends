@@ -15,15 +15,22 @@ async function readVideosFromFile(): Promise<any[]> {
   }
 }
 
-async function writeVideosToFile(videos: any[]): Promise<boolean> {
-  try {
-    await fs.mkdir(path.dirname(VIDEOS_FILE_PATH), { recursive: true });
-    await fs.writeFile(VIDEOS_FILE_PATH, JSON.stringify(videos, null, 2), 'utf-8');
-    return true;
-  } catch (err) {
-    console.error('Error writing videos file in edit-title:', err);
-    return false;
+async function writeVideosToFile(videos: any[], retries = 3): Promise<boolean> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await fs.mkdir(path.dirname(VIDEOS_FILE_PATH), { recursive: true });
+      await fs.writeFile(VIDEOS_FILE_PATH, JSON.stringify(videos, null, 2), 'utf-8');
+      return true;
+    } catch (err: any) {
+      if ((err.code === 'EBUSY' || err.code === 'EPERM') && i < retries - 1) {
+        await new Promise(res => setTimeout(res, 100 * (i + 1))); // Wait and retry
+        continue;
+      }
+      console.error('Error writing videos file in edit-title:', err);
+      return false;
+    }
   }
+  return false;
 }
 
 export async function POST(request: Request) {

@@ -27,6 +27,7 @@ import CommentsSection from './components/CommentsSection';
 
 function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isImage = vid.type === 'image';
 
@@ -52,20 +53,31 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       onTouchEnd={() => !isImage && setIsHovered(false)}
       className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden hover:border-orange-500/50 transition shadow-sm hover:shadow-xl hover:-translate-y-0.5"
     >
+      {/* Premium Gradient Fallback (Always renders behind video so no black cards) */}
+      <div 
+        style={{ backgroundImage: vid.gradient }}
+        className="absolute inset-0 w-full h-full transition-transform duration-300 group-hover:scale-105 pointer-events-none flex items-center justify-center"
+      >
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-stone-300 group-hover:text-orange-500 group-hover:scale-110 transition-all">
+          <span className="font-extrabold text-xs font-mono">{vid.initials || 'PL'}</span>
+        </div>
+      </div>
+
       {/* Media source renderer */}
       {isImage ? (
         <img 
           src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"} 
           alt={vid.title}
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+          className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
         />
       ) : vid.thumbnailUrl ? (
         <img 
           src={vid.thumbnailUrl} 
           alt={vid.title}
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+          className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
         />
       ) : vid.videoUrl ? (
         <video 
@@ -75,19 +87,10 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           muted
           playsInline
           loop
-          className="w-full h-full object-cover pointer-events-none"
+          onLoadedData={() => setIsVideoReady(true)}
+          className={`relative z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-700 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
         />
-      ) : (
-        <div 
-          style={{ backgroundImage: vid.gradient }}
-          className="w-full h-full transition-transform duration-300 group-hover:scale-105 pointer-events-none flex items-center justify-center relative"
-        >
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-stone-300 group-hover:text-orange-500 group-hover:scale-110 transition-all">
-            <span className="font-extrabold text-xs font-mono">{vid.initials || 'PL'}</span>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {/* Overlay badges & Play interface */}
       {!isImage ? (
