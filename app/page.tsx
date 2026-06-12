@@ -32,39 +32,31 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
   const [isMobilePeeking, setIsMobilePeeking] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const peekTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const peekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isImage = vid.type === 'image';
 
   useEffect(() => {
     if (!containerRef.current || isImage) return;
     const isTouchDevice = window.matchMedia('(hover: none)').matches;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          // Always mark in-view so the <video> element mounts
-          setIsInView(true);
-          // On mobile, trigger a short video peek
-          if (isTouchDevice) {
-            if (peekTimeoutRef.current) clearTimeout(peekTimeoutRef.current);
-            setIsMobilePeeking(true);
-            peekTimeoutRef.current = setTimeout(() => setIsMobilePeeking(false), 3000);
-          }
-        } else {
-          // Stop peeking when out of view
-          if (isTouchDevice) {
-            setIsMobilePeeking(false);
-            if (peekTimeoutRef.current) clearTimeout(peekTimeoutRef.current);
-          }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsInView(true);
+        if (isTouchDevice) {
+          if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+          setIsMobilePeeking(true);
+          peekTimerRef.current = setTimeout(() => setIsMobilePeeking(false), 3000);
         }
-      },
-      { threshold: 0.4 }
-    );
+      } else {
+        if (isTouchDevice) {
+          setIsMobilePeeking(false);
+          if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+        }
+      }
+    }, { threshold: 0.4 });
+
     observer.observe(containerRef.current);
-    return () => {
-      observer.disconnect();
-      if (peekTimeoutRef.current) clearTimeout(peekTimeoutRef.current);
-    };
+    return () => { observer.disconnect(); if (peekTimerRef.current) clearTimeout(peekTimerRef.current); };
   }, [isImage]);
 
   useEffect(() => {
@@ -72,8 +64,6 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
     if (!el || isImage) return;
     const shouldPlay = isHovered || isMobilePeeking;
     if (shouldPlay) {
-      // Give the browser a tick to ensure src is loaded before playing
-      el.load();
       el.play().catch(() => {});
     } else {
       el.pause();
@@ -81,10 +71,8 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
     }
   }, [isHovered, isMobilePeeking, isImage]);
 
-  const showVideo = !isImage && vid.videoUrl && (isInView || isMobilePeeking);
-
   return (
-    <div 
+    <div
       ref={containerRef}
       onClick={onClick}
       onMouseEnter={() => !isImage && setIsHovered(true)}
@@ -92,40 +80,35 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       className="group relative aspect-video cursor-pointer bg-stone-950 border border-stone-900 rounded-xl overflow-hidden transition-all duration-200 shadow-sm hover:shadow-lg hover:border-orange-500/30"
       style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}
     >
-      {/* Premium Gradient Fallback */}
-      <div 
+      {/* Gradient fallback - always behind everything */}
+      <div
         style={{ backgroundImage: vid.gradient }}
         className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center"
       >
         <div className="absolute inset-0 bg-black/30" />
-        <div className="w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-stone-300 z-10">
+        <div className="relative z-10 w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-stone-300">
           <span className="font-extrabold text-xs font-mono">{vid.initials || 'PL'}</span>
         </div>
       </div>
 
-      {/* Media layer */}
+      {/* Thumbnail / image - z-10 sits above gradient */}
       {isImage ? (
-        <img 
-          src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"} 
+        <img
+          src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"}
           alt={vid.title}
           loading="lazy"
-          decoding="async"
           referrerPolicy="no-referrer"
-          className="absolute inset-0 z-10 w-full h-full object-cover"
+          className="relative z-10 w-full h-full object-cover pointer-events-none"
         />
       ) : vid.thumbnailUrl ? (
-        <img 
+        <img
           src={vid.thumbnailUrl}
           alt={vid.title}
           loading="lazy"
-          decoding="async"
           referrerPolicy="no-referrer"
-          className="absolute inset-0 z-10 w-full h-full object-cover"
+          className="relative z-10 w-full h-full object-cover pointer-events-none"
         />
-      ) : null}
-
-      {/* Video element — always mounted when in view so it can peek on mobile */}
-      {showVideo && (
+      ) : vid.videoUrl && isInView ? (
         <video
           ref={videoRef}
           src={`${vid.videoUrl}#t=0.1`}
@@ -134,41 +117,38 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           playsInline
           loop
           onLoadedData={() => setIsVideoReady(true)}
-          className={`absolute inset-0 z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-500 ${(isVideoReady && (isHovered || isMobilePeeking)) ? 'opacity-100' : 'opacity-0'}`}
+          className={`relative z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-500 ${(isVideoReady && (isHovered || isMobilePeeking)) ? 'opacity-100' : 'opacity-0'}`}
         />
-      )}
+      ) : null}
 
-      {/* === Always-visible badges (z-30 stays above video) === */}
-      {!isImage && (
-        <>
-          {/* HD Badge — always visible, never hidden */}
-          <span className="absolute z-30 top-2 left-2 bg-orange-600 text-stone-950 text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded uppercase pointer-events-none select-none">
-            HD
-          </span>
-
-          {/* Duration Badge — always visible */}
-          <span className="absolute z-30 top-2 right-2 bg-stone-950/80 border border-white/5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-stone-300 pointer-events-none select-none">
-            {vid.duration}
-          </span>
-
-          {/* Play button — only shows when not playing */}
-          {!isHovered && !isMobilePeeking && (
-            <div className="absolute z-20 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-black/70 border border-white/10 rounded-full flex items-center justify-center pointer-events-none">
-              <Play className="w-4 h-4 fill-white text-white ml-0.5" />
-            </div>
-          )}
-        </>
-      )}
-
-      {isImage && (
+      {/* HD / Image badge - z-30 always on top */}
+      {!isImage ? (
+        <span className="absolute z-30 top-2 left-2 bg-orange-600 text-stone-950 text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded uppercase pointer-events-none select-none">
+          HD
+        </span>
+      ) : (
         <span className="absolute z-30 top-2 left-2 bg-stone-900/90 border border-stone-700 text-orange-400 text-[8px] font-mono font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider pointer-events-none flex items-center gap-1">
           <ImageIcon className="w-2.5 h-2.5" />
           <span>Image</span>
         </span>
       )}
 
-      {/* Title overlay — always visible */}
-      <div className="absolute z-30 inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/60 to-transparent pt-10 px-3 pb-2.5 pointer-events-none">
+      {/* Duration badge - z-30 top right */}
+      {!isImage && (
+        <span className="absolute z-30 top-2 right-2 bg-stone-950/80 border border-white/5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-stone-300 pointer-events-none select-none">
+          {vid.duration}
+        </span>
+      )}
+
+      {/* Play button - only when not playing */}
+      {!isImage && !isHovered && !isMobilePeeking && (
+        <div className="absolute z-20 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-black/70 border border-white/10 rounded-full flex items-center justify-center pointer-events-none">
+          <Play className="w-4 h-4 fill-white text-white ml-0.5" />
+        </div>
+      )}
+
+      {/* Title overlay - z-30, always visible at bottom */}
+      <div className="absolute z-30 inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/60 to-transparent pt-8 px-3 pb-2.5 pointer-events-none">
         <h4 className="text-white text-[13px] font-bold line-clamp-2 leading-snug">
           {vid.title || 'Untitled Media'}
         </h4>
