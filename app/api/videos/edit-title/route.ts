@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readDb, writeDb } from '../../lib/db';
+import { readDb, writeDb } from '../../../lib/db';
 
 async function readVideosFromFile(): Promise<any[]> {
   return await readDb('videos.json');
