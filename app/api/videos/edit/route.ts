@@ -13,22 +13,23 @@ async function readVideosFromFile(): Promise<any[]> {
   }
 }
 
-async function writeVideosToFile(videos: any[], retries = 3): Promise<boolean> {
+async function writeVideosToFile(videos: any[], retries = 3): Promise<void> {
+  let lastError;
   for (let i = 0; i < retries; i++) {
     try {
       await fs.mkdir(path.dirname(VIDEOS_FILE_PATH), { recursive: true });
       await fs.writeFile(VIDEOS_FILE_PATH, JSON.stringify(videos, null, 2), 'utf-8');
-      return true;
+      return;
     } catch (err: any) {
+      lastError = err;
       if ((err.code === 'EBUSY' || err.code === 'EPERM') && i < retries - 1) {
         await new Promise(res => setTimeout(res, 100 * (i + 1))); // Wait and retry
         continue;
       }
-      console.error('Error writing videos file in edit/route:', err);
-      return false;
+      throw err;
     }
   }
-  return false;
+  throw lastError;
 }
 
 export async function POST(request: Request) {
@@ -78,19 +79,16 @@ export async function POST(request: Request) {
       });
     }
 
-    const success = await writeVideosToFile(dbVideos);
-    if (!success) {
-      throw new Error('Failed to write videos database file');
-    }
+    await writeVideosToFile(dbVideos);
 
     return NextResponse.json({
       success: true,
-      message: 'Media details updated successfully',
+      message: 'Video details updated successfully',
     });
   } catch (err: any) {
     console.error('Error in POST /api/videos/edit:', err);
     return NextResponse.json(
-      { error: 'Internal server error while updating media details', details: err.message },
+      { error: 'Internal server error while updating video details', details: err.message || String(err) },
       { status: 500 }
     );
   }
