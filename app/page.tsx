@@ -147,6 +147,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
 
 function LatestDropCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
   const isImage = vid.type === 'image';
+  const [isVideoReady, setIsVideoReady] = useState(false);
   
   // Format date loosely based on the requested screenshot, or fallback
   const dateStr = vid.time || '04 Jun 2026';
@@ -157,13 +158,46 @@ function LatestDropCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       className="group relative w-full aspect-[16/9] md:aspect-[21/9] cursor-pointer bg-stone-950 rounded-2xl overflow-hidden transition-all duration-200 shadow-lg border border-stone-800"
       style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}
     >
-      <img
-        src={vid.thumbnailUrl || vid.imageUrl || "/images/v2.png"}
-        alt={vid.title}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-      />
+      {/* Background gradient fallback */}
+      <div
+        style={{ backgroundImage: vid.gradient }}
+        className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center"
+      >
+        <div className="absolute inset-0 bg-black/30" />
+      </div>
+
+      {isImage ? (
+        <img
+          src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"}
+          alt={vid.title}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 z-10 w-full h-full object-cover pointer-events-none"
+        />
+      ) : vid.thumbnailUrl ? (
+        <img
+          src={vid.thumbnailUrl}
+          alt={vid.title}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 z-10 w-full h-full object-cover pointer-events-none"
+        />
+      ) : vid.videoUrl ? (
+        <video
+          src={`${vid.videoUrl}#t=0.1`}
+          preload="metadata"
+          muted
+          playsInline
+          onLoadedData={() => setIsVideoReady(true)}
+          className={`absolute inset-0 z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
+        />
+      ) : (
+        <img
+          src="/images/v2.png"
+          alt={vid.title}
+          className="absolute inset-0 z-10 w-full h-full object-cover pointer-events-none"
+        />
+      )}
 
       {/* Play button overlay on top right */}
       {!isImage && (
@@ -776,7 +810,7 @@ export default function Home() {
                     }}
                   >
                     <div 
-                      className="flex transition-transform duration-500 ease-in-out"
+                      className="flex transition-transform duration-1000 ease-in-out"
                       style={{ transform: `translateX(-${currentSlideIndex * 100}%)` }}
                     >
                       {latestItems.map((item) => (
