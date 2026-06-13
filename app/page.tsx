@@ -145,6 +145,48 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
   );
 }
 
+function LatestDropCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
+  const isImage = vid.type === 'image';
+  
+  // Format date loosely based on the requested screenshot, or fallback
+  const dateStr = vid.time || '04 Jun 2026';
+
+  return (
+    <div
+      onClick={onClick}
+      className="group relative w-full aspect-[16/9] md:aspect-[21/9] cursor-pointer bg-stone-950 rounded-2xl overflow-hidden transition-all duration-200 shadow-lg border border-stone-800"
+      style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}
+    >
+      <img
+        src={vid.thumbnailUrl || vid.imageUrl || "/images/v2.png"}
+        alt={vid.title}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+      />
+
+      {/* Play button overlay on top right */}
+      {!isImage && (
+        <div className="absolute z-20 top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center pointer-events-none">
+          <Play className="w-5 h-5 text-white ml-0.5 fill-transparent" />
+        </div>
+      )}
+
+      {/* Text overlay */}
+      <div className="absolute z-30 inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/70 to-transparent pt-20 px-5 pb-5 pointer-events-none flex flex-col items-start">
+        <span className="bg-[#f03e16] text-white text-[12px] font-bold px-3 py-1 rounded-full lowercase tracking-wide mb-2">
+          {isImage ? 'nudes' : 'video'}
+        </span>
+        <h4 className="text-white text-lg sm:text-xl md:text-2xl font-bold line-clamp-2 leading-tight drop-shadow-md">
+          {vid.title || 'Untitled Media'}
+        </h4>
+        <p className="text-stone-300 text-xs sm:text-sm mt-2 font-bold drop-shadow-md">
+          {dateStr}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -174,39 +216,27 @@ export default function Home() {
   const [popupAd, setPopupAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
   const [showPopupModal, setShowPopupModal] = useState(false);
   const [isCarouselPaused, setIsCarouselPaused] = useState(false);
-  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
-  // Auto-scroll Latest Drops carousel
+  // Auto-scroll Latest Drops carousel (5s slides)
   useEffect(() => {
-    const el = carouselRef.current;
-    if (!el || isCarouselPaused) return;
+    if (isCarouselPaused) return;
 
     const typeFilter = selectedCategory === 'Trending Videos' ? 'video' : 'image';
     const latestCount = videos.filter(v => v.type === typeFilter).slice(0, 5).length;
     if (latestCount <= 1) return;
 
-    let animationId: number;
-    let lastTime = performance.now();
-    
-    const scroll = (time: number) => {
-      if (!el) return;
-      const deltaTime = time - lastTime;
-      // Scroll smoothly: ~50px per second
-      el.scrollLeft += deltaTime * 0.05;
-      
-      const maxScroll = el.scrollWidth - el.clientWidth;
-      if (el.scrollLeft >= maxScroll - 1) {
-        // Soft reset to beginning when reaching the end
-        el.scrollLeft = 0;
-      }
-      
-      lastTime = time;
-      animationId = requestAnimationFrame(scroll);
-    };
+    const interval = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % latestCount);
+    }, 5000);
 
-    animationId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationId);
+    return () => clearInterval(interval);
   }, [videos, selectedCategory, isCarouselPaused]);
+
+  // Reset index when category changes
+  useEffect(() => {
+    setCurrentSlideIndex(0);
+  }, [selectedCategory]);
 
   // Fetch videos on mount
   useEffect(() => {
@@ -726,31 +756,38 @@ export default function Home() {
                       <TrendingUp className="w-4 h-4 text-orange-500 animate-pulse" />
                       <span>Latest Drops</span>
                     </h3>
-                    <span className="text-[9px] font-mono text-stone-600 border border-stone-850 px-2 py-0.5 rounded-full">
-                      {latestItems.length} new
-                    </span>
+                    <div className="flex items-center gap-1">
+                      {latestItems.map((_, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`w-1.5 h-1.5 rounded-full transition-colors ${idx === currentSlideIndex ? 'bg-orange-500' : 'bg-stone-700'}`} 
+                        />
+                      ))}
+                    </div>
                   </div>
-                  {/* Touch-scrollable, draggable, auto-scrolling container */}
+                  {/* Sliding container */}
                   <div 
-                    ref={carouselRef}
+                    className="relative overflow-hidden w-full rounded-2xl"
                     onMouseEnter={() => setIsCarouselPaused(true)}
                     onMouseLeave={() => setIsCarouselPaused(false)}
                     onTouchStart={() => setIsCarouselPaused(true)}
                     onTouchEnd={() => {
-                      // Resume auto-scroll after 8 seconds of inactivity
                       setTimeout(() => setIsCarouselPaused(false), 8000);
                     }}
-                    className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-stone-850 scrollbar-track-transparent"
-                    style={{ touchAction: 'pan-x' }}
                   >
-                    {latestItems.map((item) => (
-                      <div key={item.id} className="w-[85vw] sm:w-[320px] md:w-[384px] flex-shrink-0">
-                        <VideoCard
-                          vid={item}
-                          onClick={() => handleSelectVideo(item)}
-                        />
-                      </div>
-                    ))}
+                    <div 
+                      className="flex transition-transform duration-500 ease-in-out"
+                      style={{ transform: `translateX(-${currentSlideIndex * 100}%)` }}
+                    >
+                      {latestItems.map((item) => (
+                        <div key={item.id} className="w-full flex-shrink-0">
+                          <LatestDropCard
+                            vid={item}
+                            onClick={() => handleSelectVideo(item)}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               );
