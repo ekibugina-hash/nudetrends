@@ -757,10 +757,12 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
             {videos.length > 0 && (() => {
               // Only show items matching the active tab type
               const typeFilter = selectedCategory === 'Trending Videos' ? 'video' : 'image';
-              const latestItems = [...videos]
-                .filter(v => v.type === typeFilter)
-                .sort((a, b) => (b.uploadedAt ?? 0) - (a.uploadedAt ?? 0))
-                .slice(0, 5);
+              const typeFiltered = [...videos].filter(v => v.type === typeFilter);
+              // Use admin-pinned items first; fall back to 5 latest if nothing is pinned
+              const pinnedItems = typeFiltered.filter(v => v.isPinnedToCarousel);
+              const latestItems = pinnedItems.length > 0
+                ? pinnedItems
+                : typeFiltered.sort((a, b) => (b.uploadedAt ?? 0) - (a.uploadedAt ?? 0)).slice(0, 5);
               if (latestItems.length === 0) return null;
               return (
                 <div className="space-y-3">

@@ -19,7 +19,8 @@ import {
   ExternalLink,
   Plus,
   X,
-  Lock
+  Lock,
+  Pin
 } from 'lucide-react';
 import { Video } from '../types';
 
@@ -243,6 +244,26 @@ export default function AdminPage() {
     } catch (e: any) {
       console.error('Save interesting title error:', e);
       triggerNotification(`Failed to save: ${e.message}`, 'error');
+    }
+  };
+
+  // Toggle Pin to Carousel
+  const handleTogglePin = async (id: string, currentPinned: boolean) => {
+    const newPinned = !currentPinned;
+    try {
+      const res = await fetch('/api/videos/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isPinnedToCarousel: newPinned }),
+      });
+      if (res.ok) {
+        setVideos(prev => prev.map(v => v.id === id ? { ...v, isPinnedToCarousel: newPinned } : v));
+        triggerNotification(newPinned ? '📌 Pinned to Latest Drops carousel!' : 'Unpinned from carousel.');
+      } else {
+        throw new Error('Pin update failed');
+      }
+    } catch (e: any) {
+      triggerNotification(`Failed to update pin: ${e.message}`, 'error');
     }
   };
 
@@ -760,9 +781,22 @@ export default function AdminPage() {
                           <div>
                             <div className="flex justify-between items-start gap-2">
                               <h3 className="font-bold text-stone-200 text-xs sm:text-sm truncate flex-1" title={vid.title}>
+                                {vid.isPinnedToCarousel && (
+                                  <span className="inline-flex items-center gap-0.5 text-orange-400 mr-1" title="Pinned to Latest Drops">
+                                    <Pin className="w-2.5 h-2.5 fill-orange-400" />
+                                  </span>
+                                )}
                                 {vid.title}
                               </h3>
                               <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePin(vid.id, !!vid.isPinnedToCarousel)}
+                                  className={`p-1 transition cursor-pointer ${vid.isPinnedToCarousel ? 'text-orange-400 hover:text-orange-300' : 'text-stone-500 hover:text-orange-400'}`}
+                                  title={vid.isPinnedToCarousel ? 'Unpin from Latest Drops' : 'Pin to Latest Drops Carousel'}
+                                >
+                                  <Pin className={`w-3.5 h-3.5 ${vid.isPinnedToCarousel ? 'fill-orange-400' : ''}`} />
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1049,9 +1083,22 @@ export default function AdminPage() {
                           <div>
                             <div className="flex justify-between items-start gap-2">
                               <h3 className="font-bold text-stone-200 text-xs sm:text-sm truncate flex-1" title={img.title}>
+                                {img.isPinnedToCarousel && (
+                                  <span className="inline-flex items-center gap-0.5 text-orange-400 mr-1" title="Pinned to Latest Drops">
+                                    <Pin className="w-2.5 h-2.5 fill-orange-400" />
+                                  </span>
+                                )}
                                 {img.title}
                               </h3>
                               <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePin(img.id, !!img.isPinnedToCarousel)}
+                                  className={`p-1 transition cursor-pointer ${img.isPinnedToCarousel ? 'text-orange-400 hover:text-orange-300' : 'text-stone-500 hover:text-orange-400'}`}
+                                  title={img.isPinnedToCarousel ? 'Unpin from Latest Drops' : 'Pin to Latest Drops Carousel'}
+                                >
+                                  <Pin className={`w-3.5 h-3.5 ${img.isPinnedToCarousel ? 'fill-orange-400' : ''}`} />
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => {
