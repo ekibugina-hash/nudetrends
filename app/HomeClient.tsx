@@ -114,12 +114,17 @@ function VideoCard({ vid, onClick, priority = false }: { vid: Video; onClick: ()
       ) : vid.videoUrl && isInView ? (
         <video
           ref={videoRef}
-          src={`${vid.videoUrl}#t=20`}
+          src={vid.videoUrl}
           preload="metadata"
           muted
           playsInline
           loop
-          onLoadedData={() => setIsVideoReady(true)}
+          onLoadedMetadata={(e) => {
+            const el = e.currentTarget;
+            // Seek to 20s for thumbnail; clamp to video duration if shorter
+            el.currentTime = Math.min(20, el.duration || 20);
+          }}
+          onSeeked={() => setIsVideoReady(true)}
           className={`relative z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
         />
       ) : null}
@@ -151,6 +156,7 @@ function VideoCard({ vid, onClick, priority = false }: { vid: Video; onClick: ()
 function LatestDropCard({ vid, onClick, priority = false }: { vid: Video; onClick: () => void; priority?: boolean }) {
   const isImage = vid.type === 'image';
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const thumbVideoRef = useRef<HTMLVideoElement | null>(null);
   
   // Format date loosely based on the requested screenshot, or fallback
   const dateStr = vid.time || '04 Jun 2026';
@@ -189,11 +195,16 @@ function LatestDropCard({ vid, onClick, priority = false }: { vid: Video; onClic
         />
       ) : vid.videoUrl ? (
         <video
-          src={`${vid.videoUrl}#t=20`}
+          ref={thumbVideoRef}
+          src={vid.videoUrl}
           preload="metadata"
           muted
           playsInline
-          onLoadedData={() => setIsVideoReady(true)}
+          onLoadedMetadata={(e) => {
+            const el = e.currentTarget;
+            el.currentTime = Math.min(20, el.duration || 20);
+          }}
+          onSeeked={() => setIsVideoReady(true)}
           className={`absolute inset-0 z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
         />
       ) : (
