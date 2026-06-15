@@ -5,6 +5,8 @@ import WatchContent from './WatchContent';
 
 const SITE_URL = process.env.APP_URL || 'https://nudetrends.afrozex.com';
 
+export const revalidate = 60;
+
 interface Props {
   params: { id: string };
 }
