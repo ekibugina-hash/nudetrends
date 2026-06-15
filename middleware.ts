@@ -28,6 +28,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   // Run middleware on all routes except static assets and API routes that don't need it
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|logo.png|robots.txt|sitemap.xml).*)',
+    '/((?!_next/static|_next/image|favicon.ico|logo.png|robots.txt|sitemap.xml|googleEs8WnK7FKiZYe07Dwcr8fHkzBt7nnOv_-DpvfvLWqwk\\.html).*)',
   ],
 };
