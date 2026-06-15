@@ -114,7 +114,7 @@ function VideoCard({ vid, onClick, priority = false }: { vid: Video; onClick: ()
       ) : vid.videoUrl && isInView ? (
         <video
           ref={videoRef}
-          src={`${vid.videoUrl}#t=15`}
+          src={`${vid.videoUrl}#t=20`}
           preload="metadata"
           muted
           playsInline
@@ -189,7 +189,7 @@ function LatestDropCard({ vid, onClick, priority = false }: { vid: Video; onClic
         />
       ) : vid.videoUrl ? (
         <video
-          src={`${vid.videoUrl}#t=15`}
+          src={`${vid.videoUrl}#t=20`}
           preload="metadata"
           muted
           playsInline
@@ -269,7 +269,7 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
 
     const interval = setInterval(() => {
       setCurrentSlideIndex((prev) => (prev + 1) % latestCount);
-    }, 5000);
+    }, 3500);
 
     return () => clearInterval(interval);
   }, [videos, selectedCategory, isCarouselPaused]);
@@ -785,7 +785,7 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
                     onMouseLeave={() => setIsCarouselPaused(false)}
                     onTouchStart={() => setIsCarouselPaused(true)}
                     onTouchEnd={() => {
-                      setTimeout(() => setIsCarouselPaused(false), 8000);
+                      setTimeout(() => setIsCarouselPaused(false), 3000);
                     }}
                   >
                     <div 
