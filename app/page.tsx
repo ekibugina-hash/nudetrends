@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   Compass, 
   TrendingUp, 
@@ -93,20 +94,20 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
 
       {/* Thumbnail / image - z-10 sits above gradient */}
       {isImage ? (
-        <img
+        <Image
+          fill
           src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"}
-          alt={vid.title}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="relative z-10 w-full h-full object-cover pointer-events-none"
+          alt={vid.title || 'Content thumbnail'}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="z-10 object-cover pointer-events-none"
         />
       ) : vid.thumbnailUrl ? (
-        <img
+        <Image
+          fill
           src={vid.thumbnailUrl}
-          alt={vid.title}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="relative z-10 w-full h-full object-cover pointer-events-none"
+          alt={vid.title || 'Video thumbnail'}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="z-10 object-cover pointer-events-none"
         />
       ) : vid.videoUrl && isInView ? (
         <video
@@ -167,20 +168,20 @@ function LatestDropCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
       </div>
 
       {isImage ? (
-        <img
+        <Image
+          fill
           src={vid.imageUrl || vid.thumbnailUrl || "/images/v2.png"}
-          alt={vid.title}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 z-10 w-full h-full object-cover pointer-events-none"
+          alt={vid.title || 'Content preview'}
+          sizes="(max-width: 768px) 100vw, 50vw"
+          className="z-10 object-cover pointer-events-none"
         />
       ) : vid.thumbnailUrl ? (
-        <img
+        <Image
+          fill
           src={vid.thumbnailUrl}
-          alt={vid.title}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 z-10 w-full h-full object-cover pointer-events-none"
+          alt={vid.title || 'Video thumbnail'}
+          sizes="(max-width: 768px) 100vw, 50vw"
+          className="z-10 object-cover pointer-events-none"
         />
       ) : vid.videoUrl ? (
         <video
@@ -192,10 +193,12 @@ function LatestDropCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           className={`absolute inset-0 z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
         />
       ) : (
-        <img
+        <Image
+          fill
           src="/images/v2.png"
-          alt={vid.title}
-          className="absolute inset-0 z-10 w-full h-full object-cover pointer-events-none"
+          alt={vid.title || 'Content preview'}
+          sizes="(max-width: 768px) 100vw, 50vw"
+          className="z-10 object-cover pointer-events-none"
         />
       )}
 
@@ -337,7 +340,7 @@ export default function Home() {
         if (parsed.enabled && parsed.imageUrl) {
           setTimeout(() => {
             setShowPopupModal(true);
-          }, 2000);
+          }, 7000);
         }
       } catch (e) {}
     }
@@ -482,33 +485,38 @@ export default function Home() {
             onClick={() => setShowPopupModal(false)}
             className="absolute inset-0 bg-black/85 backdrop-blur-sm transition-opacity"
           />
-          <div className="relative z-10 w-full max-w-sm bg-[#0e0e0e] border border-orange-500/30 rounded-2xl p-4 sm:p-5 shadow-2xl animate-scaleUp text-center space-y-4">
-            <div className="flex justify-between items-center border-b border-stone-850 pb-2">
-              <span className="text-[10px] font-mono font-bold text-orange-500 uppercase tracking-widest">
-                🔥 EXCLUSIVE SPONSOR AD
-              </span>
+          <div className="relative z-10 w-full max-w-sm bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-1 shadow-2xl animate-scaleUp">
+            <div className="relative overflow-hidden rounded-[22px] group">
               <button 
                 onClick={() => setShowPopupModal(false)}
-                className="text-stone-400 hover:text-white text-xs font-bold px-1.5 py-0.5 bg-stone-900 border border-stone-800 rounded hover:border-stone-700 transition"
+                className="absolute top-3 right-3 z-20 bg-black/40 hover:bg-black/80 backdrop-blur-md text-white/70 hover:text-white p-1.5 rounded-full transition-all border border-white/10"
               >
-                ✕ Close
+                <X className="w-4 h-4" />
               </button>
+              
+              <a 
+                href={popupAd.linkUrl || "#"} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={() => setShowPopupModal(false)}
+                className="block relative aspect-[4/5] w-full"
+              >
+                <img src={popupAd.imageUrl} alt="Sponsor ad" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent flex flex-col justify-end p-5">
+                  <span className="text-[10px] font-mono font-bold text-orange-500 uppercase tracking-widest mb-1 shadow-black drop-shadow-md">
+                    Sponsored Content
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-extrabold text-lg shadow-black drop-shadow-lg leading-tight">
+                      Unlock Exclusive Access
+                    </span>
+                    <span className="bg-orange-600 text-stone-950 font-black text-[10px] px-3 py-1.5 rounded-lg shadow-lg uppercase tracking-wider group-hover:bg-orange-500 transition-colors">
+                      Visit
+                    </span>
+                  </div>
+                </div>
+              </a>
             </div>
-            
-            <a 
-              href={popupAd.linkUrl || "#"} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              onClick={() => setShowPopupModal(false)}
-              className="block overflow-hidden rounded-xl border border-stone-880 hover:border-orange-500 transition-colors aspect-square max-h-[300px] relative group"
-            >
-              <img src={popupAd.imageUrl} alt="Sponsor ad" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-center p-4">
-                <span className="bg-orange-500 text-stone-950 font-black text-xs px-4 py-2 rounded-lg shadow-lg uppercase tracking-wider group-hover:bg-orange-400 transition-colors">
-                  Enter Sponsor Site
-                </span>
-              </div>
-            </a>
           </div>
         </div>
       )}

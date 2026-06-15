@@ -1228,7 +1228,16 @@ export default function AdminPage() {
 
                   {bannerAd.imageUrl && (
                     <div className="mt-2 p-2 bg-stone-900 rounded-lg border border-stone-850">
-                      <p className="text-[8px] font-mono text-stone-500 uppercase tracking-widest mb-1.5">Live Preview:</p>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <p className="text-[8px] font-mono text-stone-500 uppercase tracking-widest">Live Preview:</p>
+                        <button 
+                          type="button" 
+                          onClick={() => setBannerAd({ enabled: false, imageUrl: '', linkUrl: '' })} 
+                          className="text-[9px] text-red-500 hover:text-red-400 font-bold"
+                        >
+                          Remove Ad
+                        </button>
+                      </div>
                       <a href={bannerAd.linkUrl || "#"} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded border border-orange-500/20">
                         <img src={bannerAd.imageUrl} alt="Banner Ad" className="w-full h-16 object-cover" />
                       </a>
@@ -1306,9 +1315,18 @@ export default function AdminPage() {
                   </div>
 
                   {popupAd.imageUrl && (
-                    <div className="mt-2 p-2 bg-stone-900 rounded-lg border border-stone-850 flex justify-center">
+                    <div className="mt-2 p-2 bg-stone-900 rounded-lg border border-stone-850 flex flex-col items-center">
                       <div className="w-full max-w-[200px]">
-                        <p className="text-[8px] font-mono text-stone-500 uppercase tracking-widest mb-1.5">Live Preview:</p>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <p className="text-[8px] font-mono text-stone-500 uppercase tracking-widest">Live Preview:</p>
+                          <button 
+                            type="button" 
+                            onClick={() => setPopupAd({ enabled: false, imageUrl: '', linkUrl: '' })} 
+                            className="text-[9px] text-red-500 hover:text-red-400 font-bold"
+                          >
+                            Remove Ad
+                          </button>
+                        </div>
                         <a href={popupAd.linkUrl || "#"} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded border border-orange-500/20 aspect-square">
                           <img src={popupAd.imageUrl} alt="Popup Ad" className="w-full h-full object-cover" />
                         </a>

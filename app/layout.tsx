@@ -6,8 +6,8 @@ import { PostHogProvider } from "./components/PostHogProvider";
 const SITE_URL = "https://nudetrends.afrozex.com";
 
 export const metadata: Metadata = {
-  title: "NudeTrends Status — Premium Trending VideosNudes Uganda",
-  description: "Watch exclusive trending premium videosnudes on NudeTrends. We provide a securenetwork for the best hot girls and adult status updates in Uganda.",
+  title: "NudeTrends — Premium Trending Videos & Nudes Uganda",
+  description: "Watch exclusive trending premium videos and nudes on NudeTrends Uganda. We provide a secure network for the best hot Ugandan girls and top-rated adult leaked content. Browse our updated catalog daily!",
   keywords: [
     "nudes uganda", "porn ug", "pornography uganda", "hot sexy girls uganda",
     "kampala escorts", "ugandan nudes", "uganda leaks", "premium leaks uganda",

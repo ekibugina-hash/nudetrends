@@ -14,7 +14,7 @@ const s3 = new S3Client({
 
 export async function POST(request: Request) {
   try {
-    const { fileName, fileType } = await request.json();
+    const { fileName, fileType, isAd } = await request.json();
 
     if (!fileName || !fileType) {
       return NextResponse.json(
@@ -36,7 +36,8 @@ export async function POST(request: Request) {
     // Generate a unique object key under the appropriate folder path
     const ext = fileName.split('.').pop()?.toLowerCase() || '';
     const isImage = fileType.toLowerCase().startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-    const folder = isImage ? 'images' : 'videos';
+    let folder = isImage ? 'images' : 'videos';
+    if (isAd) folder = 'ads';
     const fileKey = `${folder}/${Date.now()}-${fileName.replace(/\s+/g, '_')}`;
 
     const command = new PutObjectCommand({
