@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -23,6 +23,32 @@ import {
   Pin
 } from 'lucide-react';
 import { Video } from '../types';
+
+// Reusable video thumbnail that properly seeks to 20s after metadata loads
+function AdminVideoThumb({ videoUrl, title, gradient }: { videoUrl: string; title: string; gradient?: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [ready, setReady] = useState(false);
+  return (
+    <>
+      {!ready && (
+        <div className="absolute inset-0 w-full h-full" style={{ backgroundImage: gradient }} />
+      )}
+      <video
+        ref={ref}
+        src={videoUrl}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
+        preload="metadata"
+        muted
+        playsInline
+        onLoadedMetadata={(e) => {
+          const el = e.currentTarget;
+          el.currentTime = Math.min(20, el.duration || 20);
+        }}
+        onSeeked={() => setReady(true)}
+      />
+    </>
+  );
+}
 
 interface AdsConfig {
   enabled: boolean;
@@ -626,7 +652,9 @@ export default function AdminPage() {
                       {vid.thumbnailUrl ? (
                         <img src={vid.thumbnailUrl} alt={vid.title} className="w-full h-full object-cover" />
                       ) : vid.videoUrl ? (
-                        <video src={vid.videoUrl} className="w-full h-full object-cover" preload="metadata" muted />
+                        <div className="relative w-full h-full">
+                          <AdminVideoThumb videoUrl={vid.videoUrl} title={vid.title} gradient={vid.gradient} />
+                        </div>
                       ) : (
                         <div className="w-full h-full" style={{ backgroundImage: vid.gradient }} />
                       )}
