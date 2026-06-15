@@ -24,27 +24,17 @@ import {
 } from 'lucide-react';
 import { Video } from '../types';
 
-// Reusable video thumbnail that properly seeks to 20s after metadata loads
+// Reusable video thumbnail that properly seeks to 20s
 function AdminVideoThumb({ videoUrl, title, gradient }: { videoUrl: string; title: string; gradient?: string }) {
-  const ref = useRef<HTMLVideoElement>(null);
-  const [ready, setReady] = useState(false);
   return (
     <>
-      {!ready && (
-        <div className="absolute inset-0 w-full h-full" style={{ backgroundImage: gradient }} />
-      )}
+      <div className="absolute inset-0 w-full h-full" style={{ backgroundImage: gradient }} />
       <video
-        ref={ref}
-        src={videoUrl}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
+        src={`${videoUrl}#t=20`}
+        className="absolute inset-0 w-full h-full object-cover z-10"
         preload="metadata"
         muted
         playsInline
-        onLoadedMetadata={(e) => {
-          const el = e.currentTarget;
-          el.currentTime = Math.min(20, el.duration || 20);
-        }}
-        onSeeked={() => setReady(true)}
       />
     </>
   );
@@ -147,15 +137,20 @@ export default function AdminPage() {
     };
     fetchVideos();
 
-    // 3. Load ads configs
-    const savedBanner = localStorage.getItem('nude_trends_banner_ads');
-    if (savedBanner) {
-      try { setBannerAd(JSON.parse(savedBanner)); } catch (e) {}
-    }
-    const savedPopup = localStorage.getItem('nude_trends_popup_ads');
-    if (savedPopup) {
-      try { setPopupAd(JSON.parse(savedPopup)); } catch (e) {}
-    }
+    // 3. Load ads configs from API
+    const fetchAds = async () => {
+      try {
+        const res = await fetch('/api/ads');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ads?.banner) setBannerAd(data.ads.banner);
+          if (data.ads?.popup) setPopupAd(data.ads.popup);
+        }
+      } catch (e) {
+        console.error('Failed to load ads');
+      }
+    };
+    fetchAds();
   }, [router]);
 
   const triggerNotification = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -164,12 +159,23 @@ export default function AdminPage() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Save Ads to LocalStorage
-  const handleSaveAds = (e: React.FormEvent) => {
+  // Save Ads to API
+  const handleSaveAds = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('nude_trends_banner_ads', JSON.stringify(bannerAd));
-    localStorage.setItem('nude_trends_popup_ads', JSON.stringify(popupAd));
-    triggerNotification('Ads configuration saved successfully!');
+    try {
+      const res = await fetch('/api/ads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ banner: bannerAd, popup: popupAd }),
+      });
+      if (res.ok) {
+        triggerNotification('Ads configuration saved globally successfully!');
+      } else {
+        throw new Error('Save failed');
+      }
+    } catch (err: any) {
+      triggerNotification(`Failed to save ads: ${err.message}`, 'error');
+    }
   };
 
   // Handle R2 Image Upload for Ads

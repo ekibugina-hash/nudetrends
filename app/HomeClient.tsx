@@ -113,19 +113,12 @@ function VideoCard({ vid, onClick, priority = false }: { vid: Video; onClick: ()
         />
       ) : vid.videoUrl && isInView ? (
         <video
-          ref={videoRef}
-          src={vid.videoUrl}
+          src={`${vid.videoUrl}#t=20`}
           preload="metadata"
           muted
           playsInline
           loop
-          onLoadedMetadata={(e) => {
-            const el = e.currentTarget;
-            // Seek to 20s for thumbnail; clamp to video duration if shorter
-            el.currentTime = Math.min(20, el.duration || 20);
-          }}
-          onSeeked={() => setIsVideoReady(true)}
-          className={`relative z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
+          className="relative z-10 w-full h-full object-cover pointer-events-none"
         />
       ) : null}
 
@@ -155,8 +148,6 @@ function VideoCard({ vid, onClick, priority = false }: { vid: Video; onClick: ()
 
 function LatestDropCard({ vid, onClick, priority = false }: { vid: Video; onClick: () => void; priority?: boolean }) {
   const isImage = vid.type === 'image';
-  const [isVideoReady, setIsVideoReady] = useState(false);
-  const thumbVideoRef = useRef<HTMLVideoElement | null>(null);
   
   // Format date loosely based on the requested screenshot, or fallback
   const dateStr = vid.time || '04 Jun 2026';
@@ -195,17 +186,11 @@ function LatestDropCard({ vid, onClick, priority = false }: { vid: Video; onClic
         />
       ) : vid.videoUrl ? (
         <video
-          ref={thumbVideoRef}
-          src={vid.videoUrl}
+          src={`${vid.videoUrl}#t=20`}
           preload="metadata"
           muted
           playsInline
-          onLoadedMetadata={(e) => {
-            const el = e.currentTarget;
-            el.currentTime = Math.min(20, el.duration || 20);
-          }}
-          onSeeked={() => setIsVideoReady(true)}
-          className={`absolute inset-0 z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
+          className="absolute inset-0 z-10 w-full h-full object-cover pointer-events-none"
         />
       ) : (
         <Image
@@ -304,27 +289,27 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
       }
     }
 
-    // Load Banner Ad
-    const savedBanner = localStorage.getItem('nude_trends_banner_ads');
-    if (savedBanner) {
+    // Fetch ads from API globally
+    const fetchAds = async () => {
       try {
-        setBannerAd(JSON.parse(savedBanner));
-      } catch (e) {}
-    }
-
-    // Load Popup Ad
-    const savedPopup = localStorage.getItem('nude_trends_popup_ads');
-    if (savedPopup) {
-      try {
-        const parsed = JSON.parse(savedPopup);
-        setPopupAd(parsed);
-        if (parsed.enabled && parsed.imageUrl) {
-          setTimeout(() => {
-            setShowPopupModal(true);
-          }, 7000);
+        const res = await fetch('/api/ads');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ads?.banner) setBannerAd(data.ads.banner);
+          if (data.ads?.popup) {
+            setPopupAd(data.ads.popup);
+            if (data.ads.popup.enabled && data.ads.popup.imageUrl) {
+              setTimeout(() => {
+                setShowPopupModal(true);
+              }, 7000);
+            }
+          }
         }
-      } catch (e) {}
-    }
+      } catch (e) {
+        console.error('Failed to load ads globally');
+      }
+    };
+    fetchAds();
   }, []);
 
   // Fetch comments when active video changes
