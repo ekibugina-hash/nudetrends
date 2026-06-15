@@ -2,6 +2,7 @@ import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } fr
 import fs from 'fs/promises';
 import path from 'path';
 import { Video } from '../types';
+import { unstable_cache } from 'next/cache';
 
 // Initialize Cloudflare R2 S3 Client
 const s3 = new S3Client({
@@ -89,7 +90,7 @@ export async function writeDb(fileName: string, data: any[]): Promise<boolean> {
  * Scans Cloudflare R2 bucket and merges R2 files with local JSON database records,
  * returning a sorted list of active videos.
  */
-export async function getMergedVideos(): Promise<Video[]> {
+async function getMergedVideosUncached(): Promise<Video[]> {
   // 1. Read JSON db videos
   const dbVideos = await readDb('videos.json');
   const activeDbVideos = dbVideos.filter((v: any) => !v.deleted);
@@ -264,3 +265,9 @@ export async function getMergedVideos(): Promise<Video[]> {
 
   return mergedVideos;
 }
+
+export const getMergedVideos = unstable_cache(
+  getMergedVideosUncached,
+  ['merged-videos'],
+  { revalidate: 60, tags: ['videos'] }
+);

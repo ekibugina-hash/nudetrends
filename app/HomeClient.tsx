@@ -26,7 +26,7 @@ import { Video, Comment } from './types';
 import VideoPlayer from './components/VideoPlayer';
 import CommentsSection from './components/CommentsSection';
 
-function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
+function VideoCard({ vid, onClick, priority = false }: { vid: Video; onClick: () => void; priority?: boolean }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [isInView, setIsInView] = useState(false);
@@ -100,6 +100,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           alt={vid.title || 'Content thumbnail'}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="z-10 object-cover pointer-events-none"
+          priority={priority}
         />
       ) : vid.thumbnailUrl ? (
         <Image
@@ -108,6 +109,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           alt={vid.title || 'Video thumbnail'}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="z-10 object-cover pointer-events-none"
+          priority={priority}
         />
       ) : vid.videoUrl && isInView ? (
         <video
@@ -146,7 +148,7 @@ function VideoCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
   );
 }
 
-function LatestDropCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
+function LatestDropCard({ vid, onClick, priority = false }: { vid: Video; onClick: () => void; priority?: boolean }) {
   const isImage = vid.type === 'image';
   const [isVideoReady, setIsVideoReady] = useState(false);
   
@@ -174,6 +176,7 @@ function LatestDropCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           alt={vid.title || 'Content preview'}
           sizes="(max-width: 768px) 100vw, 50vw"
           className="z-10 object-cover pointer-events-none"
+          priority={priority}
         />
       ) : vid.thumbnailUrl ? (
         <Image
@@ -182,6 +185,7 @@ function LatestDropCard({ vid, onClick }: { vid: Video; onClick: () => void }) {
           alt={vid.title || 'Video thumbnail'}
           sizes="(max-width: 768px) 100vw, 50vw"
           className="z-10 object-cover pointer-events-none"
+          priority={priority}
         />
       ) : vid.videoUrl ? (
         <video
@@ -788,11 +792,12 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
                       className="flex transition-transform duration-1000 ease-in-out"
                       style={{ transform: `translateX(-${currentSlideIndex * 100}%)` }}
                     >
-                      {latestItems.map((item) => (
+                      {latestItems.map((item, idx) => (
                         <div key={item.id} className="w-full flex-shrink-0">
                           <LatestDropCard
                             vid={item}
                             onClick={() => handleSelectVideo(item)}
+                            priority={true}
                           />
                         </div>
                       ))}
@@ -833,11 +838,12 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
             ) : paginatedVideos.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {paginatedVideos.map((vid) => (
+                  {paginatedVideos.map((vid, idx) => (
                     <VideoCard 
                       key={vid.id}
                       vid={vid}
                       onClick={() => handleSelectVideo(vid)}
+                      priority={idx < 4}
                     />
                   ))}
                 </div>
