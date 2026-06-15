@@ -114,7 +114,7 @@ function VideoCard({ vid, onClick, priority = false }: { vid: Video; onClick: ()
       ) : vid.videoUrl && isInView ? (
         <video
           ref={videoRef}
-          src={`${vid.videoUrl}#t=0.1`}
+          src={`${vid.videoUrl}#t=5`}
           preload="metadata"
           muted
           playsInline
@@ -189,7 +189,7 @@ function LatestDropCard({ vid, onClick, priority = false }: { vid: Video; onClic
         />
       ) : vid.videoUrl ? (
         <video
-          src={`${vid.videoUrl}#t=0.1`}
+          src={`${vid.videoUrl}#t=5`}
           preload="metadata"
           muted
           playsInline

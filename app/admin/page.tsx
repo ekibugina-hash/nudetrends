@@ -73,6 +73,18 @@ export default function AdminPage() {
   const [editCreator, setEditCreator] = useState('');
   const [editDesc, setEditDesc] = useState('');
 
+  // Thumbnail states for new upload
+  const [thumbnailSource, setThumbnailSource] = useState<'none' | 'file' | 'url'>('none');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [mediaThumbnailUrl, setMediaThumbnailUrl] = useState('');
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
+
+  // Thumbnail states for editing
+  const [editThumbnailSource, setEditThumbnailSource] = useState<'none' | 'file' | 'url'>('none');
+  const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
+  const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
+  const [editThumbnailUploading, setEditThumbnailUploading] = useState(false);
+
   // Auth gate check & data loader on mount
   useEffect(() => {
     // 1. Gating verification
@@ -267,6 +279,40 @@ export default function AdminPage() {
   const handleSaveDetails = async (id: string) => {
     try {
       const targetVid = videos.find(v => v.id === id);
+      
+      let finalThumbnailUrl = targetVid?.thumbnailUrl || '';
+      if (editThumbnailSource === 'file' && editThumbnailFile) {
+        setEditThumbnailUploading(true);
+        triggerNotification('Uploading custom thumbnail to R2...');
+        try {
+          const res = await fetch('/api/get-presigned-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileName: editThumbnailFile.name, fileType: editThumbnailFile.type }),
+          });
+          if (!res.ok) throw new Error('Failed to request thumbnail upload signature.');
+          const { uploadUrl, publicUrl } = await res.json();
+          const uploadRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': editThumbnailFile.type },
+            body: editThumbnailFile,
+          });
+          if (!uploadRes.ok) throw new Error('Thumbnail direct R2 upload failed.');
+          finalThumbnailUrl = publicUrl;
+        } catch (err: any) {
+          console.error(err);
+          triggerNotification(`Thumbnail upload failed: ${err.message}`, 'error');
+          setEditThumbnailUploading(false);
+          return;
+        } finally {
+          setEditThumbnailUploading(false);
+        }
+      } else if (editThumbnailSource === 'url') {
+        finalThumbnailUrl = editThumbnailUrl.trim();
+      } else if (editThumbnailSource === 'none') {
+        finalThumbnailUrl = '';
+      }
+
       const res = await fetch('/api/videos/edit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -276,6 +322,7 @@ export default function AdminPage() {
           title: editTitle.trim(),
           creator: editCreator.trim(),
           desc: editDesc.trim(),
+          thumbnailUrl: finalThumbnailUrl
         }),
       });
 
@@ -284,9 +331,13 @@ export default function AdminPage() {
           ...v,
           title: editTitle.trim(),
           creator: editCreator.trim(),
-          desc: editDesc.trim()
+          desc: editDesc.trim(),
+          thumbnailUrl: finalThumbnailUrl
         } : v));
         setEditingDetailsId(null);
+        setEditThumbnailSource('none');
+        setEditThumbnailFile(null);
+        setEditThumbnailUrl('');
         triggerNotification('Media details updated successfully!');
       } else {
         throw new Error('Update failed');
@@ -352,6 +403,37 @@ export default function AdminPage() {
       }
     }
 
+    let finalThumbnailUrl = '';
+    if (thumbnailSource === 'file' && thumbnailFile) {
+      setThumbnailUploading(true);
+      triggerNotification('Uploading custom thumbnail to R2...');
+      try {
+        const res = await fetch('/api/get-presigned-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: thumbnailFile.name, fileType: thumbnailFile.type }),
+        });
+        if (!res.ok) throw new Error('Failed to request thumbnail upload signature.');
+        const { uploadUrl, publicUrl } = await res.json();
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': thumbnailFile.type },
+          body: thumbnailFile,
+        });
+        if (!uploadRes.ok) throw new Error('Thumbnail direct R2 upload failed.');
+        finalThumbnailUrl = publicUrl;
+      } catch (err: any) {
+        console.error(err);
+        triggerNotification(`Thumbnail upload failed: ${err.message}`, 'error');
+        setThumbnailUploading(false);
+        return;
+      } finally {
+        setThumbnailUploading(false);
+      }
+    } else if (thumbnailSource === 'url') {
+      finalThumbnailUrl = mediaThumbnailUrl.trim();
+    }
+
     // Create the media item object
     const newMediaItem: Video = {
       id: `custom-${Date.now()}`,
@@ -367,7 +449,8 @@ export default function AdminPage() {
       type: mediaType,
       videoUrl: mediaType === 'video' ? finalMediaUrl : undefined,
       imageUrl: mediaType === 'image' ? finalMediaUrl : undefined,
-      thumbnailUrl: '',
+      thumbnailUrl: finalThumbnailUrl,
+      uploadedAt: Date.now(),
       interestingTitles: []
     };
 
@@ -390,6 +473,9 @@ export default function AdminPage() {
         setUploadFile(null);
         setMediaDesc('');
         setMediaCreator('Admin Upload');
+        setThumbnailSource('none');
+        setThumbnailFile(null);
+        setMediaThumbnailUrl('');
         
         triggerNotification('New media created and published successfully!');
         setActiveTab('manage');
@@ -584,6 +670,74 @@ export default function AdminPage() {
                               className="w-full bg-stone-950 border border-stone-900/60 rounded px-2.5 py-1 text-[11px] focus:outline-none focus:border-orange-500 text-stone-200"
                             />
                           </div>
+                          <div className="space-y-1.5 pt-1.5 border-t border-stone-900">
+                            <label className="block text-[8px] font-mono font-bold text-stone-400 uppercase tracking-wider mb-0.5">
+                              Edit Thumbnail Option
+                            </label>
+                            <div className="flex bg-stone-950 p-0.5 rounded border border-stone-900/60">
+                              <button
+                                type="button"
+                                onClick={() => setEditThumbnailSource('none')}
+                                className={`flex-1 py-1 text-[8px] font-bold rounded transition ${
+                                  editThumbnailSource === 'none' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-stone-100'
+                                }`}
+                              >
+                                Auto/None
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditThumbnailSource('file')}
+                                className={`flex-1 py-1 text-[8px] font-bold rounded transition ${
+                                  editThumbnailSource === 'file' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-stone-100'
+                                }`}
+                              >
+                                Upload to R2
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditThumbnailSource('url')}
+                                className={`flex-1 py-1 text-[8px] font-bold rounded transition ${
+                                  editThumbnailSource === 'url' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-stone-100'
+                                }`}
+                              >
+                                Custom URL
+                              </button>
+                            </div>
+
+                            {editThumbnailSource === 'file' && (
+                              <div className="mt-1 animate-fadeIn">
+                                <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">
+                                  Upload Thumbnail Image
+                                </label>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => setEditThumbnailFile(e.target.files?.[0] || null)}
+                                  className="w-full bg-stone-950 border border-stone-900/60 rounded px-2 py-0.5 text-[10px] text-stone-300"
+                                />
+                                {editThumbnailFile && (
+                                  <p className="text-[8px] text-stone-400 mt-0.5">
+                                    Selected: <span className="text-orange-400 font-bold">{editThumbnailFile.name}</span>
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {editThumbnailSource === 'url' && (
+                              <div className="mt-1 animate-fadeIn">
+                                <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">
+                                  Thumbnail Image URL
+                                </label>
+                                <input
+                                  type="url"
+                                  placeholder="https://example.com/thumbnail.jpg"
+                                  value={editThumbnailUrl}
+                                  onChange={(e) => setEditThumbnailUrl(e.target.value)}
+                                  className="w-full bg-stone-950 border border-stone-900/60 rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500 text-stone-200"
+                                />
+                              </div>
+                            )}
+                          </div>
                           <div className="flex justify-end gap-1.5 pt-1.5 border-t border-stone-900">
                             <button 
                               type="button"
@@ -616,6 +770,8 @@ export default function AdminPage() {
                                     setEditTitle(vid.title);
                                     setEditCreator(vid.creator);
                                     setEditDesc(vid.desc || '');
+                                    setEditThumbnailSource(vid.thumbnailUrl ? 'url' : 'none');
+                                    setEditThumbnailUrl(vid.thumbnailUrl || '');
                                   }}
                                   className="p-1 hover:text-orange-500 text-stone-500 transition cursor-pointer"
                                   title="Edit Details"
@@ -803,6 +959,74 @@ export default function AdminPage() {
                               className="w-full bg-stone-950 border border-stone-900/60 rounded px-2.5 py-1 text-[11px] focus:outline-none focus:border-orange-500 text-stone-200"
                             />
                           </div>
+                          <div className="space-y-1.5 pt-1.5 border-t border-stone-900">
+                            <label className="block text-[8px] font-mono font-bold text-stone-400 uppercase tracking-wider mb-0.5">
+                              Edit Thumbnail Option
+                            </label>
+                            <div className="flex bg-stone-950 p-0.5 rounded border border-stone-900/60">
+                              <button
+                                type="button"
+                                onClick={() => setEditThumbnailSource('none')}
+                                className={`flex-1 py-1 text-[8px] font-bold rounded transition ${
+                                  editThumbnailSource === 'none' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-stone-100'
+                                }`}
+                              >
+                                Auto/None
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditThumbnailSource('file')}
+                                className={`flex-1 py-1 text-[8px] font-bold rounded transition ${
+                                  editThumbnailSource === 'file' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-stone-100'
+                                }`}
+                              >
+                                Upload to R2
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditThumbnailSource('url')}
+                                className={`flex-1 py-1 text-[8px] font-bold rounded transition ${
+                                  editThumbnailSource === 'url' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-stone-100'
+                                }`}
+                              >
+                                Custom URL
+                              </button>
+                            </div>
+
+                            {editThumbnailSource === 'file' && (
+                              <div className="mt-1 animate-fadeIn">
+                                <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">
+                                  Upload Thumbnail Image
+                                </label>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => setEditThumbnailFile(e.target.files?.[0] || null)}
+                                  className="w-full bg-stone-950 border border-stone-900/60 rounded px-2 py-0.5 text-[10px] text-stone-300"
+                                />
+                                {editThumbnailFile && (
+                                  <p className="text-[8px] text-stone-400 mt-0.5">
+                                    Selected: <span className="text-orange-400 font-bold">{editThumbnailFile.name}</span>
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {editThumbnailSource === 'url' && (
+                              <div className="mt-1 animate-fadeIn">
+                                <label className="block text-[8px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-0.5">
+                                  Thumbnail Image URL
+                                </label>
+                                <input
+                                  type="url"
+                                  placeholder="https://example.com/thumbnail.jpg"
+                                  value={editThumbnailUrl}
+                                  onChange={(e) => setEditThumbnailUrl(e.target.value)}
+                                  className="w-full bg-stone-950 border border-stone-900/60 rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500 text-stone-200"
+                                />
+                              </div>
+                            )}
+                          </div>
                           <div className="flex justify-end gap-1.5 pt-1.5 border-t border-stone-900">
                             <button 
                               type="button"
@@ -835,6 +1059,8 @@ export default function AdminPage() {
                                     setEditTitle(img.title);
                                     setEditCreator(img.creator);
                                     setEditDesc(img.desc || '');
+                                    setEditThumbnailSource(img.thumbnailUrl ? 'url' : 'none');
+                                    setEditThumbnailUrl(img.thumbnailUrl || '');
                                   }}
                                   className="p-1 hover:text-orange-500 text-stone-500 transition cursor-pointer"
                                   title="Edit Details"
@@ -1094,6 +1320,75 @@ export default function AdminPage() {
                   />
                 </div>
               )}
+              {/* Thumbnail Customization */}
+              <div className="space-y-2 p-3 bg-black/20 rounded-xl border border-stone-850">
+                <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+                  Thumbnail Customization
+                </label>
+                <div className="flex bg-stone-950 p-1 rounded-lg border border-stone-850">
+                  <button
+                    type="button"
+                    onClick={() => setThumbnailSource('none')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded transition ${
+                      thumbnailSource === 'none' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-stone-100'
+                    }`}
+                  >
+                    Auto/None
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setThumbnailSource('file')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded transition ${
+                      thumbnailSource === 'file' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-stone-100'
+                    }`}
+                  >
+                    Upload Thumbnail to R2
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setThumbnailSource('url')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded transition ${
+                      thumbnailSource === 'url' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-stone-100'
+                    }`}
+                  >
+                    Direct Thumbnail URL
+                  </button>
+                </div>
+
+                {thumbnailSource === 'file' && (
+                  <div className="mt-2 animate-fadeIn">
+                    <label className="block text-[9px] font-bold text-stone-500 uppercase tracking-wider mb-1">
+                      Upload Custom Thumbnail Image
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                      className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 rounded-lg py-1 px-2.5 text-xs text-stone-300"
+                    />
+                    {thumbnailFile && (
+                      <p className="text-[9px] text-stone-400 mt-1">
+                        Thumbnail: <span className="text-orange-400 font-bold">{thumbnailFile.name}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {thumbnailSource === 'url' && (
+                  <div className="mt-2 animate-fadeIn">
+                    <label className="block text-[9px] font-bold text-stone-500 uppercase tracking-wider mb-1">
+                      Paste Custom Thumbnail URL
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/custom-thumbnail.jpg"
+                      value={mediaThumbnailUrl}
+                      onChange={(e) => setMediaThumbnailUrl(e.target.value)}
+                      className="w-full bg-stone-900 border border-stone-850 hover:border-stone-700 focus:border-orange-500 rounded-lg py-1.5 px-3 text-xs text-stone-100 focus:outline-none"
+                    />
+                  </div>
+                )}
+              </div>
 
               {/* Description */}
               <div>

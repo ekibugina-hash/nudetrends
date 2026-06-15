@@ -261,7 +261,11 @@ async function getMergedVideosUncached(): Promise<Video[]> {
     }
   });
 
-  mergedVideos.sort((a, b) => getMediaTimestamp(b) - getMediaTimestamp(a));
+  mergedVideos.sort((a, b) => {
+    const timeA = getMediaTimestamp(a) || a.uploadedAt || 0;
+    const timeB = getMediaTimestamp(b) || b.uploadedAt || 0;
+    return timeB - timeA;
+  });
 
   return mergedVideos;
 }
