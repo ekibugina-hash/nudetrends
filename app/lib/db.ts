@@ -179,6 +179,7 @@ export async function getMergedVideos(): Promise<Video[]> {
           videoUrl: isVideo ? publicUrl : undefined,
           imageUrl: isImage ? publicUrl : undefined,
           thumbnailUrl: '',
+          uploadedAt: lastModified.getTime(), // real R2 upload timestamp
           interestingTitles: []
         };
 
@@ -237,7 +238,8 @@ export async function getMergedVideos(): Promise<Video[]> {
         time: dbVid.time || r2Match.time,
         initials: dbVid.initials || r2Match.initials,
         gradient: dbVid.gradient || r2Match.gradient,
-        duration: dbVid.duration || r2Match.duration
+        duration: dbVid.duration || r2Match.duration,
+        uploadedAt: r2Match.uploadedAt || dbVid.uploadedAt, // prefer R2 real timestamp
       });
     } else {
       if (dbVid.videoUrl || dbVid.imageUrl) {

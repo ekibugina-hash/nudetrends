@@ -14,6 +14,7 @@ export interface Video {
   interestingTitles?: string[];
   videoUrl?: string; // Optional real URL from R2
   thumbnailUrl?: string; // Optional real thumbnail from R2
+  uploadedAt?: number; // Unix ms timestamp of when the file was uploaded
 }
 
 export interface Comment {

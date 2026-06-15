@@ -789,6 +789,7 @@ export default function Home() {
               const typeFilter = selectedCategory === 'Trending Videos' ? 'video' : 'image';
               const latestItems = [...videos]
                 .filter(v => v.type === typeFilter)
+                .sort((a, b) => (b.uploadedAt ?? 0) - (a.uploadedAt ?? 0))
                 .slice(0, 5);
               if (latestItems.length === 0) return null;
               return (
