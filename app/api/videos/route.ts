@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Video } from '../../types';
 import { readDb, writeDb, getMergedVideos } from '../../lib/db';
+import { revalidateTag } from 'next/cache';
 
 async function readVideosFromFile(): Promise<Video[]> {
   return await readDb('videos.json');
@@ -57,6 +58,8 @@ export async function POST(request: Request) {
     if (!success) {
       throw new Error('Failed to write videos database file');
     }
+
+    revalidateTag('videos');
 
     return NextResponse.json({
       success: true,
