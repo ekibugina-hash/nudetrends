@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { readDb, writeDb } from '../../../lib/db';
+import { isAdminRequest } from '../../../lib/auth';
+import { revalidateTag } from 'next/cache';
 
 async function readVideosFromFile(): Promise<any[]> {
   return await readDb('videos.json');
@@ -9,7 +11,11 @@ async function writeVideosToFile(videos: any[]): Promise<void> {
   await writeDb('videos.json', videos);
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  if (!await isAdminRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const payload = await request.json();
     const { id } = payload;
@@ -26,8 +32,6 @@ export async function POST(request: Request) {
 
     if (index > -1) {
       // Merge all provided payload fields into the existing entry.
-      // This makes the endpoint type-agnostic: desc, type, imageUrl, videoUrl etc.
-      // all get persisted regardless of media type.
       const { id: _id, ...fields } = payload;
       Object.entries(fields).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -57,6 +61,8 @@ export async function POST(request: Request) {
     }
 
     await writeVideosToFile(dbVideos);
+    // @ts-ignore
+    revalidateTag('videos');
 
     return NextResponse.json({
       success: true,

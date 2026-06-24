@@ -1,19 +1,9 @@
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { Video } from '../../../types';
-import fs from 'fs/promises';
-import path from 'path';
-import { readDb, writeDb } from '../../../lib/db';
-
-// Initialize Cloudflare R2 S3 Client
-const s3 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-  },
-});
+import { readDb, writeDb, s3 } from '../../../lib/db';
+import { isAdminRequest } from '../../../lib/auth';
+import { revalidateTag } from 'next/cache';
 
 async function readVideosFromFile(): Promise<any[]> {
   return await readDb('videos.json');
@@ -28,7 +18,11 @@ async function writeVideosToFile(videos: any[]): Promise<boolean> {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  if (!await isAdminRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { id, fileUrl } = await request.json();
 
@@ -46,7 +40,7 @@ export async function POST(request: Request) {
     if (index > -1) {
       dbVideos[index].deleted = true;
     } else {
-      // If it's a dynamic R2 video or not in DB, add a record with deleted: true
+      // If it's a dynamic R2 video not in DB, add a record with deleted: true
       dbVideos.push({
         id,
         title: 'Deleted Video',
@@ -67,6 +61,9 @@ export async function POST(request: Request) {
     if (!dbSuccess) {
       throw new Error('Failed to update videos database file');
     }
+
+    // @ts-ignore
+    revalidateTag('videos');
 
     // 2. If it's hosted in R2, delete the S3 object
     let r2Deleted = false;

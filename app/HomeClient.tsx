@@ -22,7 +22,7 @@ import {
   ImageIcon,
   Video as VideoIcon
 } from 'lucide-react';
-import { Video, Comment } from './types';
+import { Video } from './types';
 import VideoPlayer from './components/VideoPlayer';
 import CommentsSection from './components/CommentsSection';
 
@@ -227,19 +227,16 @@ function LatestDropCard({ vid, onClick, priority = false }: { vid: Video; onClic
 
 export default function HomeClient({ initialVideos }: { initialVideos: Video[] }) {
   const [videos, setVideos] = useState<Video[]>(initialVideos);
-  const [comments, setComments] = useState<Comment[]>([]);
   const [activeView, setActiveView] = useState<'landing' | 'watch'>('landing');
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('Trending Videos');
   const [searchQuery, setSearchQuery] = useState('');
-  const [commentText, setCommentText] = useState('');
-  const [commentName, setCommentName] = useState('My Nickname');
   const [isClient, setIsClient] = useState(false);
   const [loadingVideos, setLoadingVideos] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Modals visibility
   const [notification, setNotification] = useState<string | null>(null);
@@ -275,19 +272,19 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
     setCurrentSlideIndex(0);
   }, [selectedCategory]);
 
-  // Fetch videos on mount
+  // On mount: mark client-rendered, build interestingTitles from SSR video data, load ads
   useEffect(() => {
     setIsClient(true);
-    
-    // Load interesting titles
-    const savedTitles = localStorage.getItem('nude_trends_interesting_titles');
-    if (savedTitles) {
-      try {
-        setInterestingTitlesMap(JSON.parse(savedTitles));
-      } catch (e) {
-        console.error('Error loading interesting titles map:', e);
+
+    // Build interesting titles map from the initial server-side video data.
+    // This avoids reading stale data from localStorage.
+    const titleMap: Record<string, string[]> = {};
+    initialVideos.forEach((v) => {
+      if (v.interestingTitles && v.interestingTitles.length > 0) {
+        titleMap[v.id] = v.interestingTitles;
       }
-    }
+    });
+    setInterestingTitlesMap(titleMap);
 
     // Fetch ads from API globally
     const fetchAds = async () => {
@@ -299,9 +296,7 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
           if (data.ads?.popup) {
             setPopupAd(data.ads.popup);
             if (data.ads.popup.enabled && data.ads.popup.imageUrl) {
-              setTimeout(() => {
-                setShowPopupModal(true);
-              }, 7000);
+              setTimeout(() => setShowPopupModal(true), 7000);
             }
           }
         }
@@ -310,31 +305,10 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
       }
     };
     fetchAds();
-  }, []);
+  }, [initialVideos]);
 
-  // Fetch comments when active video changes
-  useEffect(() => {
-    if (!activeVideo?.id) return;
-    
-    const fetchComments = async () => {
-      setLoadingComments(true);
-      try {
-        const res = await fetch(`/api/comments?videoId=${encodeURIComponent(activeVideo.id)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.comments) {
-            setComments(data.comments);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to load comments:', e);
-      } finally {
-        setLoadingComments(false);
-      }
-    };
-
-    fetchComments();
-  }, [activeVideo?.id]);
+  // When a video is selected, scroll up
+  // (Comments are handled exclusively by <CommentsSection> inside <VideoPlayer>)
 
   // Sync state back to window URL query parameters (only runs on the client)
   useEffect(() => {
@@ -390,48 +364,30 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Submit dynamic comment responses
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentText.trim() || !activeVideo) return;
-
-    const newComment: Comment = {
-      id: `c-user-${Date.now()}`,
-      videoId: activeVideo.id,
-      author: commentName.trim() || 'Anonymous User',
-      time: 'Just now',
-      text: commentText.trim(),
-      avatarInitials: (commentName.trim() || 'AU').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-    };
-
-    try {
-      const res = await fetch('/api/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newComment),
-      });
-      if (res.ok) {
-        setComments(prev => [newComment, ...prev]);
-        setCommentText('');
-        triggerNotification('Comment posted successfully!');
-      } else {
-        throw new Error('Failed to post comment');
-      }
-    } catch (err) {
-      console.error(err);
-      triggerNotification('Failed to post comment. Try again.');
-    }
-  };
-
   const triggerNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 4000);
   };
 
   const handleShare = (video: Video) => {
-    const fakeUrl = `${window.location.origin}/?watch=${video.id}`;
-    navigator.clipboard.writeText(fakeUrl);
-    triggerNotification("Copied stream link to clipboard!");
+    const shareUrl = `${window.location.origin}/?watch=${video.id}`;
+    // Use clipboard API with a graceful fallback for non-HTTPS origins
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        triggerNotification('Copied stream link to clipboard!');
+      }).catch(() => {
+        triggerNotification('Could not copy link.');
+      });
+    } else {
+      // Fallback: create a temporary input element
+      const el = document.createElement('input');
+      el.value = shareUrl;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      triggerNotification('Copied stream link to clipboard!');
+    }
   };
 
   return (
@@ -511,12 +467,13 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
           <div className="hidden md:flex flex-1 max-w-xl items-center">
             <div className="relative flex-1">
               <input 
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search videos, models, or categories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                className="w-full bg-stone-900/60 border border-stone-880 rounded-l-full py-2 pl-5 pr-12 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-550 transition-colors"
+                className="w-full bg-stone-900/60 border border-stone-800 rounded-l-full py-2 pl-5 pr-12 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-500 transition-colors"
               />
               {searchQuery && (
                 <button 
@@ -528,7 +485,7 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
               )}
             </div>
             <button
-              onClick={() => {}}
+              onClick={() => searchInputRef.current?.focus()}
               className="bg-orange-500 hover:bg-orange-400 text-stone-950 px-5 py-2 rounded-r-full flex items-center justify-center border border-orange-500 transition-colors cursor-pointer"
               title="Search"
             >
@@ -553,16 +510,7 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
       {/* Sliding Mobile Sidebar */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-[2000] md:hidden">
-          {/* Custom style for slide-in animation from right */}
-          <style dangerouslySetInnerHTML={{__html: `
-            @keyframes slideFromRight {
-              from { transform: translateX(100%); }
-              to { transform: translateX(0); }
-            }
-            .animate-slideFromRight {
-              animation: slideFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            }
-          `}} />
+          {/* Animation defined in globals.css as .animate-slideFromRight */}
 
           {/* Sidebar Backdrop Overlay */}
           <div 
@@ -571,7 +519,7 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
           />
           
           {/* Sidebar drawer body (sliding from right) */}
-          <div className="absolute inset-y-0 right-0 w-64 bg-[#0c0c0c] border-l border-stone-850 p-6 flex flex-col justify-between z-10 animate-slideFromRight">
+          <div className="absolute inset-y-0 right-0 w-64 bg-[#0c0c0c] border-l border-stone-800 p-6 flex flex-col justify-between z-10 animate-slideFromRight">
             <div className="space-y-6">
               
               {/* Header and Close button */}
@@ -712,11 +660,11 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                className="w-full bg-stone-900 border border-stone-850 rounded-l-xl py-2.5 pl-4 pr-4 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-550"
+                className="w-full bg-stone-900 border border-stone-800 rounded-l-xl py-2.5 pl-4 pr-4 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-500"
               />
             </div>
             <button
-              onClick={() => {}}
+              onClick={() => setSearchQuery('')}
               className="bg-orange-500 hover:bg-orange-400 text-stone-950 px-4 py-2.5 rounded-r-xl flex items-center justify-center transition-colors flex-shrink-0"
               title="Search"
             >
@@ -938,9 +886,11 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
                       Premium Nude Image
                     </div>
                   </div>
+                  {/* CommentsSection handles its own data fetching */}
                   <CommentsSection videoId={activeVideo.id} />
                 </>
               ) : (
+                // VideoPlayer includes CommentsSection internally
                 <VideoPlayer video={activeVideo} />
               )}
 
@@ -951,14 +901,14 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
                 </h1>
                 <button 
                   onClick={() => handleShare(activeVideo)}
-                  className="px-4 py-2 bg-stone-900 hover:bg-stone-850 text-stone-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border border-stone-800 hover:border-stone-700 cursor-pointer flex-shrink-0"
+                  className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-stone-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border border-stone-800 hover:border-stone-700 cursor-pointer flex-shrink-0"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span>Copy Link</span>
                 </button>
               </div>
 
-              {/* Trimmed Metadata (CRITICAL: Title Text below video cleaned out) */}
+              {/* Trimmed Metadata */}
               <div className="py-1.5 space-y-1">
                 <div className="flex items-center gap-2 text-xs text-stone-400 font-mono">
                   <span className="font-bold text-stone-300">{activeVideo.creator}</span>
@@ -1003,67 +953,39 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
                 </div>
               )}
 
-              {/* Interactive Comments threads */}
-              <div className="space-y-4 pt-4 border-t border-stone-900">
-                <h3 className="text-sm font-extrabold text-stone-300 uppercase tracking-wider">
-                  Comments ({comments.length})
-                </h3>
-
-                {/* Simple comment form */}
-                <form onSubmit={handleAddComment} className="flex gap-2">
-                  <input 
-                    required
-                    type="text"
-                    placeholder="Add a comment..."
-                    value={commentText}
-                    onChange={(e) => {
-                      setCommentText(e.target.value);
-                      if (commentName === 'My Nickname') {
-                        setCommentName('Anonymous User');
-                      }
-                    }}
-                    className="flex-1 bg-stone-900 border border-stone-800 focus:border-orange-500 rounded-lg py-2 px-4 text-xs text-stone-100 placeholder:text-stone-600 focus:outline-none transition-colors"
-                  />
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-orange-500 hover:bg-orange-400 text-stone-950 font-bold text-xs rounded-lg transition-colors cursor-pointer"
-                  >
-                    Send
-                  </button>
-                </form>
-
-                {/* Render Comments */}
-                <div className="space-y-3 pt-2">
-                  {loadingComments ? (
-                    <div className="py-6 text-center text-xs text-stone-600 flex items-center justify-center gap-2">
-                      <span className="w-3.5 h-3.5 border border-orange-500/50 border-t-transparent rounded-full animate-spin" />
-                      <span>Loading comments...</span>
-                    </div>
-                  ) : comments.map((comment) => (
-                    <div 
-                      key={comment.id}
-                      className="p-3 bg-stone-900/30 rounded-lg flex gap-3 animate-fadeIn"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-stone-800 text-stone-300 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
-                        {comment.avatarInitials}
-                      </div>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-stone-200">{comment.author}</span>
-                          <span className="text-[9px] text-stone-500 font-mono">{comment.time}</span>
+              {/* Attached Content (from Admin) */}
+              {activeVideo.attachments && activeVideo.attachments.length > 0 && (
+                <div className="space-y-4 pt-8 border-t border-stone-900">
+                  <h3 className="text-sm font-extrabold text-stone-300 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                    <span>Attached Content</span>
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {activeVideo.attachments.map((att) => (
+                      <div key={att.id} className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-stone-800 shadow-xl group">
+                        {att.type === 'video' ? (
+                          <video 
+                            src={att.url} 
+                            controls 
+                            className="w-full h-full object-contain"
+                            poster={att.thumbnailUrl}
+                          />
+                        ) : (
+                          <img 
+                            src={att.url} 
+                            alt="Attachment"
+                            className="w-full h-full object-contain cursor-pointer"
+                            onClick={() => window.open(att.url, '_blank')}
+                          />
+                        )}
+                        <div className="absolute top-2 right-2 bg-stone-950/80 backdrop-blur-sm px-2 py-0.5 rounded border border-white/5 text-[8px] font-mono font-bold text-blue-400 uppercase tracking-widest shadow">
+                          Attached {att.type}
                         </div>
-                        <p className="text-xs text-stone-300">{comment.text}</p>
                       </div>
-                    </div>
-                  ))}
-
-                  {!loadingComments && comments.length === 0 && (
-                    <div className="p-4 text-center text-xs text-stone-600 italic">
-                      No comments yet.
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Other Related items */}
               <div className="space-y-4 pt-8 border-t border-stone-900">
@@ -1130,7 +1052,7 @@ export default function HomeClient({ initialVideos }: { initialVideos: Video[] }
             <p className="text-[11px] text-stone-500">Premium adult content and exclusive leaks network.</p>
           </div>
 
-          <div className="flex items-center justify-center flex-wrap gap-4 text-xs text-stone-450">
+          <div className="flex items-center justify-center flex-wrap gap-4 text-xs text-stone-400">
             <span className="hover:text-orange-500 transition-colors pointer-default">Premium Network</span>
             <span className="text-stone-700">•</span>
             <span className="hover:text-orange-500 transition-colors pointer-default">Exclusive Creators</span>

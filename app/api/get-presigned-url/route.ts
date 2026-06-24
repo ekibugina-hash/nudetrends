@@ -1,18 +1,14 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { NextRequest, NextResponse } from 'next/server';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { NextResponse } from 'next/server';
+import { s3 } from '../../lib/db';
+import { isAdminRequest } from '../../lib/auth';
 
-// Initialize Cloudflare R2 S3 Client
-const s3 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-  },
-});
+export async function POST(request: NextRequest) {
+  if (!await isAdminRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-export async function POST(request: Request) {
   try {
     const { fileName, fileType, isAd } = await request.json();
 
@@ -38,7 +34,8 @@ export async function POST(request: Request) {
     const isImage = fileType.toLowerCase().startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
     let folder = isImage ? 'images' : 'videos';
     if (isAd) folder = 'ads';
-    const fileKey = `${folder}/${Date.now()}-${fileName.replace(/\s+/g, '_')}`;
+    const safeFileName = fileName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+    const fileKey = `${folder}/${Date.now()}-${safeFileName}`;
 
     const command = new PutObjectCommand({
       Bucket: bucketName,
@@ -50,10 +47,7 @@ export async function POST(request: Request) {
     const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
     const publicUrl = `https://${publicDomain}/${fileKey}`;
 
-    return NextResponse.json({
-      uploadUrl,
-      publicUrl,
-    });
+    return NextResponse.json({ uploadUrl, publicUrl });
   } catch (err: any) {
     console.error('Error generating Cloudflare R2 presigned URL:', err);
     return NextResponse.json(

@@ -20,6 +20,7 @@ import {
   Plus,
   X,
   Lock,
+  LogOut,
   Pin
 } from 'lucide-react';
 import { Video } from '../types';
@@ -102,19 +103,24 @@ export default function AdminPage() {
   const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
   const [editThumbnailUploading, setEditThumbnailUploading] = useState(false);
 
+  // Attachments states for editing
+  const [newAttachmentType, setNewAttachmentType] = useState<'video' | 'image'>('video');
+  const [newAttachmentUrl, setNewAttachmentUrl] = useState('');
+
   // Auth gate check & data loader on mount
   useEffect(() => {
-    // 1. Gating verification
-    const isAuth = sessionStorage.getItem('nude_trends_admin_authenticated') === 'true';
-    if (!isAuth) {
-      setAuthorized(false);
-      router.push('/login');
-      return;
-    }
-    setAuthorized(true);
+    const checkSession = async () => {
+      // Verify session by calling the dedicated auth-check endpoint.
+      // The cookie is httpOnly so the client cannot read or forge it.
+      const authRes = await fetch('/api/auth/check').catch(() => null);
+      if (!authRes || authRes.status === 401) {
+        setAuthorized(false);
+        router.push('/login');
+        return;
+      }
+      setAuthorized(true);
 
-    // 2. Fetch videos from server dynamic list
-    const fetchVideos = async () => {
+      // Load videos
       setR2Loading(true);
       try {
         const res = await fetch('/api/videos');
@@ -134,11 +140,8 @@ export default function AdminPage() {
       } finally {
         setR2Loading(false);
       }
-    };
-    fetchVideos();
 
-    // 3. Load ads configs from API
-    const fetchAds = async () => {
+      // Load ads config
       try {
         const res = await fetch('/api/ads');
         if (res.ok) {
@@ -150,13 +153,22 @@ export default function AdminPage() {
         console.error('Failed to load ads');
       }
     };
-    fetchAds();
+
+    checkSession();
   }, [router]);
 
   const triggerNotification = (msg: string, type: 'success' | 'error' = 'success') => {
     setNotification(msg);
     setNotifType(type);
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      router.push('/login');
+    }
   };
 
   // Save Ads to API
@@ -401,6 +413,67 @@ export default function AdminPage() {
     }
   };
 
+  // Add Attachment
+  const handleAddAttachment = async (id: string) => {
+    if (!newAttachmentUrl.trim()) return;
+    
+    const targetVideo = videos.find(v => v.id === id);
+    if (!targetVideo) return;
+
+    const newAttachment = {
+      id: `att-${Date.now()}`,
+      type: newAttachmentType,
+      url: newAttachmentUrl.trim()
+    };
+
+    const currentAttachments = targetVideo.attachments || [];
+    const updatedAttachments = [...currentAttachments, newAttachment];
+
+    try {
+      const res = await fetch('/api/videos/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, attachments: updatedAttachments }),
+      });
+      
+      if (res.ok) {
+        setVideos(prev => prev.map(v => v.id === id ? { ...v, attachments: updatedAttachments } : v));
+        setNewAttachmentUrl('');
+        triggerNotification('Attachment added successfully!');
+      } else {
+        throw new Error('Failed to add attachment');
+      }
+    } catch (e: any) {
+      triggerNotification(`Failed to add attachment: ${e.message}`, 'error');
+    }
+  };
+
+  // Remove Attachment
+  const handleRemoveAttachment = async (id: string, attachmentId: string) => {
+    const targetVideo = videos.find(v => v.id === id);
+    if (!targetVideo) return;
+
+    const currentAttachments = targetVideo.attachments || [];
+    const updatedAttachments = currentAttachments.filter(a => a.id !== attachmentId);
+
+    try {
+      const res = await fetch('/api/videos/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, attachments: updatedAttachments }),
+      });
+      
+      if (res.ok) {
+        setVideos(prev => prev.map(v => v.id === id ? { ...v, attachments: updatedAttachments } : v));
+        triggerNotification('Attachment removed.');
+      } else {
+        throw new Error('Failed to remove attachment');
+      }
+    } catch (e: any) {
+      triggerNotification(`Failed to remove attachment: ${e.message}`, 'error');
+    }
+  };
+
   // Upload Custom Media (Video/Image)
   const handleCreateMedia = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -568,14 +641,14 @@ export default function AdminPage() {
     <div className="min-h-screen bg-[#090909] text-stone-200">
       
       {/* Sticky Top Admin Header - Responsive stacking */}
-      <header className="sticky top-0 z-[1000] bg-[#0c0c0c]/95 backdrop-blur-md border-b border-stone-850">
+      <header className="sticky top-0 z-[1000] bg-[#0c0c0c]/95 backdrop-blur-md border-b border-stone-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           
           {/* Header Left: Logo, Back Button, Title */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between md:justify-start gap-3 w-full md:w-auto">
             <Link 
               href="/"
-              className="flex items-center gap-1.5 px-3 py-2 bg-stone-900 hover:bg-stone-850 border border-stone-800 hover:border-stone-700 text-xs font-mono font-bold rounded-lg transition w-fit"
+              className="flex items-center gap-1.5 px-3 py-2 bg-stone-900 hover:bg-stone-800 border border-stone-800 hover:border-stone-700 text-xs font-mono font-bold rounded-lg transition w-fit"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Site</span>
@@ -587,31 +660,41 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Header Right: Navigation tabs grid for mobile, flex for desktop */}
-          <div className="grid grid-cols-3 gap-1.5 w-full md:flex md:w-auto md:gap-1.5">
+          {/* Header Right: Navigation tabs + logout */}
+          <div className="flex items-center gap-1.5 w-full md:w-auto">
+            <div className="grid grid-cols-3 gap-1.5 flex-1 md:flex md:flex-none">
+              <button
+                onClick={() => setActiveTab('manage')}
+                className={`py-2 px-3 rounded-lg text-[10px] sm:text-xs font-bold transition text-center ${
+                  activeTab === 'manage' ? 'bg-orange-600 text-stone-950' : 'bg-stone-900 text-stone-400 hover:text-white'
+                }`}
+              >
+                Manage
+              </button>
+              <button
+                onClick={() => setActiveTab('upload')}
+                className={`py-2 px-3 rounded-lg text-[10px] sm:text-xs font-bold transition text-center ${
+                  activeTab === 'upload' ? 'bg-orange-600 text-stone-950' : 'bg-stone-900 text-stone-400 hover:text-white'
+                }`}
+              >
+                Add Item
+              </button>
+              <button
+                onClick={() => setActiveTab('ads')}
+                className={`py-2 px-3 rounded-lg text-[10px] sm:text-xs font-bold transition text-center ${
+                  activeTab === 'ads' ? 'bg-orange-600 text-stone-950' : 'bg-stone-900 text-stone-400 hover:text-white'
+                }`}
+              >
+                Ads Control
+              </button>
+            </div>
             <button
-              onClick={() => setActiveTab('manage')}
-              className={`py-2 px-3 rounded-lg text-[10px] sm:text-xs font-bold transition text-center ${
-                activeTab === 'manage' ? 'bg-orange-600 text-stone-950' : 'bg-stone-900 text-stone-400 hover:text-white'
-              }`}
+              onClick={handleLogout}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-stone-900 hover:bg-red-900/40 border border-stone-800 hover:border-red-700/50 text-stone-500 hover:text-red-400 text-[10px] sm:text-xs font-bold rounded-lg transition"
+              title="Sign out"
             >
-              Manage
-            </button>
-            <button
-              onClick={() => setActiveTab('upload')}
-              className={`py-2 px-3 rounded-lg text-[10px] sm:text-xs font-bold transition text-center ${
-                activeTab === 'upload' ? 'bg-orange-600 text-stone-950' : 'bg-stone-900 text-stone-400 hover:text-white'
-              }`}
-            >
-              Add Item
-            </button>
-            <button
-              onClick={() => setActiveTab('ads')}
-              className={`py-2 px-3 rounded-lg text-[10px] sm:text-xs font-bold transition text-center ${
-                activeTab === 'ads' ? 'bg-orange-600 text-stone-950' : 'bg-stone-900 text-stone-400 hover:text-white'
-              }`}
-            >
-              Ads Control
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
@@ -792,6 +875,65 @@ export default function AdminPage() {
                                 />
                               </div>
                             )}
+
+                            {/* ATTACHMENTS UI */}
+                            <div className="space-y-1.5 pt-1.5 border-t border-stone-900">
+                              <label className="block text-[8px] font-mono font-bold text-stone-400 uppercase tracking-wider mb-0.5">
+                                Related Attachments ({vid.attachments?.length || 0})
+                              </label>
+                              
+                              {vid.attachments && vid.attachments.length > 0 && (
+                                <div className="space-y-1 mb-1.5">
+                                  {vid.attachments.map((att) => (
+                                    <div key={att.id} className="flex items-center justify-between bg-stone-950 border border-stone-900/60 rounded px-2 py-1">
+                                      <div className="flex items-center gap-1.5 overflow-hidden">
+                                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${att.type === 'video' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                          {att.type}
+                                        </span>
+                                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[9px] text-stone-300 truncate hover:text-stone-100 transition">
+                                          {att.url}
+                                        </a>
+                                      </div>
+                                      <button 
+                                        type="button" 
+                                        onClick={() => handleRemoveAttachment(vid.id, att.id)}
+                                        className="text-stone-600 hover:text-red-500 transition-colors p-0.5"
+                                        title="Remove attachment"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="flex gap-1.5">
+                                <select 
+                                  value={newAttachmentType}
+                                  onChange={(e) => setNewAttachmentType(e.target.value as 'video' | 'image')}
+                                  className="bg-stone-950 border border-stone-900/60 rounded px-1.5 py-1 text-[9px] focus:outline-none focus:border-orange-500 text-stone-200"
+                                >
+                                  <option value="video">Video</option>
+                                  <option value="image">Image</option>
+                                </select>
+                                <input 
+                                  type="url"
+                                  placeholder="Attachment URL (e.g. .mp4 or .jpg)"
+                                  value={newAttachmentUrl}
+                                  onChange={(e) => setNewAttachmentUrl(e.target.value)}
+                                  className="flex-1 bg-stone-950 border border-stone-900/60 rounded px-2 py-1 text-[10px] focus:outline-none focus:border-orange-500 text-stone-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddAttachment(vid.id)}
+                                  className="px-2 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 text-[9px] font-bold rounded transition border border-stone-700"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            </div>
+                            {/* END ATTACHMENTS UI */}
+
                           </div>
                           <div className="flex justify-end gap-1.5 pt-1.5 border-t border-stone-900">
                             <button 
@@ -1094,6 +1236,65 @@ export default function AdminPage() {
                                 />
                               </div>
                             )}
+
+                            {/* ATTACHMENTS UI */}
+                            <div className="space-y-1.5 pt-1.5 border-t border-stone-900">
+                              <label className="block text-[8px] font-mono font-bold text-stone-400 uppercase tracking-wider mb-0.5">
+                                Related Attachments ({img.attachments?.length || 0})
+                              </label>
+                              
+                              {img.attachments && img.attachments.length > 0 && (
+                                <div className="space-y-1 mb-1.5">
+                                  {img.attachments.map((att) => (
+                                    <div key={att.id} className="flex items-center justify-between bg-stone-950 border border-stone-900/60 rounded px-2 py-1">
+                                      <div className="flex items-center gap-1.5 overflow-hidden">
+                                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${att.type === 'video' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                          {att.type}
+                                        </span>
+                                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[9px] text-stone-300 truncate hover:text-stone-100 transition">
+                                          {att.url}
+                                        </a>
+                                      </div>
+                                      <button 
+                                        type="button" 
+                                        onClick={() => handleRemoveAttachment(img.id, att.id)}
+                                        className="text-stone-600 hover:text-red-500 transition-colors p-0.5"
+                                        title="Remove attachment"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="flex gap-1.5">
+                                <select 
+                                  value={newAttachmentType}
+                                  onChange={(e) => setNewAttachmentType(e.target.value as 'video' | 'image')}
+                                  className="bg-stone-950 border border-stone-900/60 rounded px-1.5 py-1 text-[9px] focus:outline-none focus:border-orange-500 text-stone-200"
+                                >
+                                  <option value="video">Video</option>
+                                  <option value="image">Image</option>
+                                </select>
+                                <input 
+                                  type="url"
+                                  placeholder="Attachment URL (e.g. .mp4 or .jpg)"
+                                  value={newAttachmentUrl}
+                                  onChange={(e) => setNewAttachmentUrl(e.target.value)}
+                                  className="flex-1 bg-stone-950 border border-stone-900/60 rounded px-2 py-1 text-[10px] focus:outline-none focus:border-orange-500 text-stone-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddAttachment(img.id)}
+                                  className="px-2 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 text-[9px] font-bold rounded transition border border-stone-700"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            </div>
+                            {/* END ATTACHMENTS UI */}
+
                           </div>
                           <div className="flex justify-end gap-1.5 pt-1.5 border-t border-stone-900">
                             <button 

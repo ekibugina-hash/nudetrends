@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { readDb, writeDb } from '../../../lib/db';
+import { isAdminRequest } from '../../../lib/auth';
+import { revalidateTag } from 'next/cache';
 
 async function readVideosFromFile(): Promise<any[]> {
   return await readDb('videos.json');
@@ -9,7 +11,11 @@ async function writeVideosToFile(videos: any[]): Promise<void> {
   await writeDb('videos.json', videos);
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  if (!await isAdminRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { id, interestingTitles } = await request.json();
 
@@ -20,14 +26,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate each title is a non-empty string (max 200 chars)
+    const sanitizedTitles = interestingTitles
+      .filter((t: any) => typeof t === 'string' && t.trim().length > 0)
+      .map((t: string) => t.trim().slice(0, 200));
+
     const dbVideos = await readVideosFromFile();
     const index = dbVideos.findIndex((v) => v.id === id);
 
     if (index > -1) {
-      dbVideos[index].interestingTitles = interestingTitles;
+      dbVideos[index].interestingTitles = sanitizedTitles;
     } else {
       // Create a skeleton entry for this video/image to store its custom titles
-      // This happens when an R2-sourced item hasn't been explicitly saved to the DB yet
       dbVideos.push({
         id,
         title: '',
@@ -39,21 +49,23 @@ export async function POST(request: Request) {
         initials: '',
         gradient: '',
         category: '',
-        type: 'video', // Default to video, will be merged with R2 dynamically
+        type: 'video',
         videoUrl: '',
         imageUrl: '',
         thumbnailUrl: '',
-        interestingTitles,
+        interestingTitles: sanitizedTitles,
         deleted: false
       });
     }
 
     await writeVideosToFile(dbVideos);
+    // @ts-ignore
+    revalidateTag('videos');
 
     return NextResponse.json({
       success: true,
       message: 'Interesting titles updated successfully',
-      interestingTitles
+      interestingTitles: sanitizedTitles
     });
   } catch (err: any) {
     console.error('Error in POST /api/videos/edit-title:', err);

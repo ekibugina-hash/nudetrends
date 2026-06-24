@@ -16,6 +16,14 @@ export interface Video {
   thumbnailUrl?: string; // Optional real thumbnail from R2
   uploadedAt?: number; // Unix ms timestamp of when the file was uploaded
   isPinnedToCarousel?: boolean; // Whether to pin this item to the Latest Drops carousel
+  attachments?: MediaAttachment[]; // Related videos/images attached to this video
+}
+
+export interface MediaAttachment {
+  id: string;
+  type: 'video' | 'image';
+  url: string;
+  thumbnailUrl?: string; // Optional thumbnail for video attachments
 }
 
 export interface Comment {

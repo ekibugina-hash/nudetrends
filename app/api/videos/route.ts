@@ -1,6 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Video } from '../../types';
 import { readDb, writeDb, getMergedVideos } from '../../lib/db';
+import { isAdminRequest } from '../../lib/auth';
+import { revalidateTag } from 'next/cache';
 
 async function readVideosFromFile(): Promise<Video[]> {
   return await readDb('videos.json');
@@ -32,7 +34,11 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  if (!await isAdminRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const newVideo = await request.json();
 
@@ -58,6 +64,8 @@ export async function POST(request: Request) {
       throw new Error('Failed to write videos database file');
     }
 
+    // @ts-ignore
+    revalidateTag('videos');
 
     return NextResponse.json({
       success: true,
