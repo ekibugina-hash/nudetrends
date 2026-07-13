@@ -33,7 +33,7 @@ function TopicCard({
   onDirectPlay: (video: Video) => void;
 }) {
   const router = useRouter();
-  const [videoReady, setVideoReady] = useState(false);
+  const [thumbReady, setThumbReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleClick = () => {
@@ -45,6 +45,18 @@ function TopicCard({
   };
 
   const showVideoThumb = !creator.thumbnailUrl && creator.videoUrl;
+
+  // When video metadata loads, seek to second 3 to grab a frame
+  const handleMetadata = () => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.currentTime = 3;
+  };
+
+  // When seek completes, the frame is painted — reveal the video
+  const handleSeeked = () => {
+    setThumbReady(true);
+  };
 
   return (
     <div
@@ -79,16 +91,17 @@ function TopicCard({
         />
       )}
 
-      {/* Auto-generated video thumbnail (when no static image) */}
+      {/* Auto-generated video thumbnail — seek to frame 3 on load */}
       {showVideoThumb && (
         <video
           ref={videoRef}
-          src={`${creator.videoUrl}#t=3`}
+          src={creator.videoUrl}
           preload="metadata"
           muted
           playsInline
-          onLoadedData={() => setVideoReady(true)}
-          className={`absolute inset-0 z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-500 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+          onLoadedMetadata={handleMetadata}
+          onSeeked={handleSeeked}
+          className={`absolute inset-0 z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-700 ${thumbReady ? 'opacity-100' : 'opacity-0'}`}
         />
       )}
 
@@ -106,7 +119,7 @@ function TopicCard({
         </div>
       )}
 
-      {/* Play button (shown when single video - no series) */}
+      {/* Play button (single video topics) */}
       {!creator.hasTopicPage && (
         <div className="absolute z-20 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
           <Play className="w-4 h-4 fill-white text-white ml-0.5" />
