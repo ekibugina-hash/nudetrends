@@ -33,8 +33,6 @@ function TopicCard({
   onDirectPlay: (video: Video) => void;
 }) {
   const router = useRouter();
-  const [thumbReady, setThumbReady] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleClick = () => {
     if (creator.hasTopicPage) {
@@ -45,22 +43,6 @@ function TopicCard({
   };
 
   const showVideoThumb = !creator.thumbnailUrl && creator.videoUrl;
-
-  const handleMetadata = () => {
-    const el = videoRef.current;
-    if (!el) return;
-    // Seek to 20 seconds, or 30% of the way if video is shorter
-    el.currentTime = Math.min(20, el.duration > 0 ? el.duration * 0.3 : 20);
-
-    // Fallback: If onSeeked doesn't fire within 2 seconds, force it to show
-    setTimeout(() => {
-      setThumbReady(true);
-    }, 2000);
-  };
-
-  const handleSeeked = () => {
-    setThumbReady(true);
-  };
 
   return (
     <div
@@ -95,18 +77,14 @@ function TopicCard({
         />
       )}
 
-      {/* Auto-generated video thumbnail — seek on load */}
+      {/* Auto-generated video thumbnail */}
       {showVideoThumb && (
         <video
-          ref={videoRef}
-          src={creator.videoUrl}
-          crossOrigin="anonymous"
+          src={`${creator.videoUrl}#t=20`}
           preload="metadata"
           muted
           playsInline
-          onLoadedMetadata={handleMetadata}
-          onSeeked={handleSeeked}
-          className={`absolute inset-0 z-10 w-full h-full object-cover pointer-events-none transition-opacity duration-700 ${thumbReady ? 'opacity-100' : 'opacity-0'}`}
+          className="absolute inset-0 z-10 w-full h-full object-cover pointer-events-none"
         />
       )}
 
