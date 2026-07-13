@@ -330,6 +330,7 @@ async function getCreatorsUncached(): Promise<Creator[]> {
   const mergedVideos = await getMergedVideosUncached();
   const dbCreators = await readDb('creators.json');
   const customThumbnails: Record<string, string> = {};
+  const customBios: Record<string, string> = {};
   const configuredNames = new Set<string>();
   
   if (Array.isArray(dbCreators)) {
@@ -338,6 +339,9 @@ async function getCreatorsUncached(): Promise<Creator[]> {
         configuredNames.add(c.name);
         if (c.thumbnailUrl) {
           customThumbnails[c.name] = c.thumbnailUrl;
+        }
+        if (c.bio) {
+          customBios[c.name] = c.bio;
         }
       }
     });
@@ -355,6 +359,7 @@ async function getCreatorsUncached(): Promise<Creator[]> {
         videoUrl: vid.videoUrl || undefined,
         gradient: deterministicGradient(name),
         hasTopicPage: configuredNames.has(name),
+        bio: customBios[name],
         firstVideo: vid,
         videos: [vid],
       });

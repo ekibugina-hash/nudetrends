@@ -139,7 +139,7 @@ function VideoCard({ vid, onClick, priority = false }: { vid: Video; onClick: ()
   );
 }
 
-export default function CreatorClient({ videos, creatorName }: { videos: Video[], creatorName: string }) {
+export default function CreatorClient({ videos, creatorName, bio }: { videos: Video[], creatorName: string, bio?: string }) {
   const router = useRouter();
   const [activeView, setActiveView] = useState<'landing' | 'watch'>('landing');
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
@@ -334,6 +334,13 @@ export default function CreatorClient({ videos, creatorName }: { videos: Video[]
               </div>
             </div>
 
+            {bio && (
+              <div className="bg-stone-900/40 border border-stone-850 rounded-2xl p-6 shadow-inner animate-fadeIn">
+                <h4 className="text-xs font-mono font-bold text-orange-500 uppercase tracking-widest mb-3">About this Series</h4>
+                <p className="text-sm text-stone-300 leading-relaxed whitespace-pre-wrap">{bio}</p>
+              </div>
+            )}
+
             {paginatedVideos.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -471,6 +478,30 @@ export default function CreatorClient({ videos, creatorName }: { videos: Video[]
                         {title}
                       </p>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Related Videos: More from this Topic */}
+              {videos.length > 1 && (
+                <div className="pt-8 border-t border-stone-850 mt-8">
+                  <h3 className="text-sm font-extrabold text-stone-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-orange-500" />
+                    <span>More from {creatorName}</span>
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {videos
+                      .filter(v => v.id !== activeVideo.id)
+                      .slice(0, 4) // show up to 4
+                      .map(vid => (
+                        <div key={vid.id} className="scale-95 origin-top-left hover:scale-100 transition-transform">
+                          <VideoCard
+                            vid={vid}
+                            onClick={() => handleSelectVideo(vid)}
+                          />
+                        </div>
+                      ))
+                    }
                   </div>
                 </div>
               )}

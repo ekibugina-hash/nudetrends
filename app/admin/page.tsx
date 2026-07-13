@@ -113,6 +113,7 @@ export default function AdminPage() {
   const [creatorThumbnailSource, setCreatorThumbnailSource] = useState<'none' | 'file' | 'url'>('none');
   const [creatorThumbnailFile, setCreatorThumbnailFile] = useState<File | null>(null);
   const [creatorThumbnailUrl, setCreatorThumbnailUrl] = useState('');
+  const [creatorBio, setCreatorBio] = useState('');
   const [creatorThumbnailUploading, setCreatorThumbnailUploading] = useState(false);
 
   // Auth gate check & data loader on mount
@@ -528,24 +529,32 @@ export default function AdminPage() {
       }
     } else if (creatorThumbnailSource === 'url') {
       finalThumbnailUrl = creatorThumbnailUrl.trim();
-    } else if (creatorThumbnailSource === 'none') {
-      triggerNotification('Please provide a file or URL for the thumbnail', 'error');
-      return;
     }
 
     try {
+      const payload: any = { name: selectedCreatorName, bio: creatorBio };
+      // Check finalThumbnailUrl to see if we should update it
+      if (finalThumbnailUrl) {
+        payload.thumbnailUrl = finalThumbnailUrl;
+      }
+
       const res = await fetch('/api/creators', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: selectedCreatorName, thumbnailUrl: finalThumbnailUrl }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
-        setCreators(prev => prev.map(c => c.name === selectedCreatorName ? { ...c, thumbnailUrl: finalThumbnailUrl } : c));
-        triggerNotification('Topic thumbnail updated successfully!');
+        setCreators(prev => prev.map(c => c.name === selectedCreatorName ? { 
+          ...c, 
+          bio: creatorBio,
+          ...(creatorThumbnailSource !== 'none' ? { thumbnailUrl: finalThumbnailUrl } : {})
+        } : c));
+        triggerNotification('Topic settings updated successfully!');
         setSelectedCreatorName('');
         setCreatorThumbnailSource('none');
         setCreatorThumbnailFile(null);
         setCreatorThumbnailUrl('');
+        setCreatorBio('');
       } else {
         throw new Error('Failed to save creator thumbnail');
       }
@@ -2024,7 +2033,13 @@ export default function AdminPage() {
               <label className="block text-xs font-mono font-bold text-stone-500 uppercase tracking-wider mb-2">Select a Topic to Edit Thumbnail</label>
               <select 
                 value={selectedCreatorName}
-                onChange={(e) => setSelectedCreatorName(e.target.value)}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setSelectedCreatorName(name);
+                  const c = creators.find(x => x.name === name);
+                  setCreatorBio(c?.bio || '');
+                  setCreatorThumbnailSource('none');
+                }}
                 className="w-full bg-stone-950 border border-stone-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-orange-500 text-stone-200 mb-6"
               >
                 <option value="">-- Select a Topic --</option>
@@ -2035,8 +2050,22 @@ export default function AdminPage() {
 
               {selectedCreatorName && (
                 <div className="space-y-4 pt-4 border-t border-stone-800">
-                  <h3 className="font-bold text-stone-200">Set Thumbnail for {selectedCreatorName}</h3>
-                  <div className="flex gap-4 mb-4">
+                  <h3 className="font-bold text-stone-200">Settings for {selectedCreatorName}</h3>
+                  
+                  <div>
+                    <label className="block text-[10px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-1">Topic Bio / Description</label>
+                    <textarea 
+                      rows={3}
+                      placeholder="Write a short bio or description for this topic page..."
+                      value={creatorBio}
+                      onChange={(e) => setCreatorBio(e.target.value)}
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-orange-500 text-stone-200"
+                    />
+                  </div>
+
+                  <div className="pt-2 border-t border-stone-800/50 mt-2">
+                    <label className="block text-[10px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-2">Set Custom Thumbnail</label>
+                    <div className="flex gap-4 mb-4">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="radio" checked={creatorThumbnailSource === 'file'} onChange={() => setCreatorThumbnailSource('file')} />
                       <span className="text-sm text-stone-300">Upload Image</span>
@@ -2068,7 +2097,7 @@ export default function AdminPage() {
                   <div className="pt-4 flex justify-end">
                     <button
                       onClick={handleSaveCreatorThumbnail}
-                      disabled={creatorThumbnailUploading || creatorThumbnailSource === 'none' || (creatorThumbnailSource === 'file' && !creatorThumbnailFile) || (creatorThumbnailSource === 'url' && !creatorThumbnailUrl)}
+                      disabled={creatorThumbnailUploading}
                       className="bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-stone-950 px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition"
                     >
                       {creatorThumbnailUploading ? (
@@ -2076,8 +2105,9 @@ export default function AdminPage() {
                       ) : (
                         <CheckCircle2 className="w-4 h-4" />
                       )}
-                      <span>Save Thumbnail</span>
+                      <span>Save Topic Settings</span>
                     </button>
+                  </div>
                   </div>
                 </div>
               )}

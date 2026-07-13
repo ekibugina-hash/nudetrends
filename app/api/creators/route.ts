@@ -12,18 +12,19 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, thumbnailUrl } = await req.json();
-    if (!name || !thumbnailUrl) {
-      return NextResponse.json({ success: false, error: 'Name and thumbnailUrl are required' }, { status: 400 });
+    const { name, thumbnailUrl, bio } = await req.json();
+    if (!name) {
+      return NextResponse.json({ success: false, error: 'Name is required' }, { status: 400 });
     }
 
     const creators = await readDb('creators.json');
     const existingIndex = creators.findIndex((c: any) => c.name === name);
 
     if (existingIndex !== -1) {
-      creators[existingIndex].thumbnailUrl = thumbnailUrl;
+      if (thumbnailUrl !== undefined) creators[existingIndex].thumbnailUrl = thumbnailUrl;
+      if (bio !== undefined) creators[existingIndex].bio = bio;
     } else {
-      creators.push({ name, thumbnailUrl });
+      creators.push({ name, thumbnailUrl, bio });
     }
 
     const success = await writeDb('creators.json', creators);

@@ -46,54 +46,19 @@ function TopicCard({
 
   const showVideoThumb = !creator.thumbnailUrl && creator.videoUrl;
 
-  // Seek positions to try in order (skip black intros)
-  const SEEK_POSITIONS = [20, 10, 5, 2];
-  const seekIndexRef = useRef(0);
-
-  const trySeek = (el: HTMLVideoElement) => {
-    const pos = SEEK_POSITIONS[seekIndexRef.current] ?? 2;
-    // Don't seek past video duration
-    el.currentTime = Math.min(pos, el.duration > 0 ? el.duration * 0.3 : pos);
-  };
-
   const handleMetadata = () => {
     const el = videoRef.current;
     if (!el) return;
-    seekIndexRef.current = 0;
-    trySeek(el);
+    // Seek to 20 seconds, or 30% of the way if video is shorter
+    el.currentTime = Math.min(20, el.duration > 0 ? el.duration * 0.3 : 20);
+
+    // Fallback: If onSeeked doesn't fire within 2 seconds, force it to show
+    setTimeout(() => {
+      setThumbReady(true);
+    }, 2000);
   };
 
   const handleSeeked = () => {
-    const el = videoRef.current;
-    if (!el) return;
-
-    // Use canvas to detect if frame is blank (all/mostly black)
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 32;
-      canvas.height = 18;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(el, 0, 0, 32, 18);
-        const data = ctx.getImageData(0, 0, 32, 18).data;
-        let brightness = 0;
-        for (let i = 0; i < data.length; i += 4) {
-          brightness += data[i] + data[i + 1] + data[i + 2];
-        }
-        const avgBrightness = brightness / (data.length / 4 * 3);
-        if (avgBrightness < 8) {
-          // Frame is too dark — try next position
-          seekIndexRef.current += 1;
-          if (seekIndexRef.current < SEEK_POSITIONS.length) {
-            trySeek(el);
-            return;
-          }
-        }
-      }
-    } catch {
-      // canvas tainted or unavailable — just show whatever frame we got
-    }
-
     setThumbReady(true);
   };
 
@@ -130,11 +95,12 @@ function TopicCard({
         />
       )}
 
-      {/* Auto-generated video thumbnail — seek to frame 3 on load */}
+      {/* Auto-generated video thumbnail — seek on load */}
       {showVideoThumb && (
         <video
           ref={videoRef}
           src={creator.videoUrl}
+          crossOrigin="anonymous"
           preload="metadata"
           muted
           playsInline
@@ -437,11 +403,14 @@ export default function HomeClient({ initialCreators }: { initialCreators: Creat
         {/* ── GRID VIEW ───────────────────────────────────────────────────────── */}
         {activeView === 'grid' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-stone-850 pb-3">
-              <h3 className="text-sm font-extrabold text-stone-300 uppercase tracking-wider flex items-center gap-2">
-                <Compass className="w-4 h-4 text-orange-500" />
-                <span>Topics / Models ({filteredCreators.length})</span>
-              </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-stone-850 pb-3 gap-3">
+              <div>
+                <h3 className="text-base font-extrabold text-stone-200 tracking-wider flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-orange-500 animate-pulse" />
+                  <span>🔥 TRENDING NOW — Exclusive Leaks & Uncensored Content</span>
+                </h3>
+                <p className="text-xs text-stone-500 mt-1">Fresh drops updated daily ({filteredCreators.length} available)</p>
+              </div>
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="text-xs text-orange-500 hover:underline">Clear Search</button>
               )}
@@ -557,6 +526,29 @@ export default function HomeClient({ initialCreators }: { initialCreators: Creat
                   </a>
                 </div>
               )}
+
+              {/* Related Videos: You May Also Like */}
+              <div className="pt-8 border-t border-stone-850 mt-8">
+                <h3 className="text-sm font-extrabold text-stone-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-orange-500" />
+                  <span>You May Also Like</span>
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {creators
+                    .filter(c => c.name !== activeVideo.creator) // don't show current topic
+                    .sort(() => Math.random() - 0.5) // shuffle
+                    .slice(0, 8) // get 8
+                    .map(creator => (
+                      <div key={creator.name} className="scale-95 origin-top-left hover:scale-100 transition-transform">
+                        <TopicCard
+                          creator={creator}
+                          onDirectPlay={handleDirectPlay}
+                        />
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
             </div>
           </div>
         )}
