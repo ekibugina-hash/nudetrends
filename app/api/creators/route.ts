@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { revalidateTag } from 'next/cache';
 import { readDb, writeDb, getCreators } from '../../lib/db';
 
 export async function GET() {
@@ -33,7 +32,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Failed to write to DB' }, { status: 500 });
     }
 
-    revalidateTag('creators');
+    // Removed revalidateTag to fix build error. Revalidation will happen every 60s.
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
