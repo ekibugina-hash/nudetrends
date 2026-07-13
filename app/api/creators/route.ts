@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { readDb, writeDb, getCreators } from '../../lib/db';
 
 export async function GET() {
@@ -32,7 +33,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Failed to write to DB' }, { status: 500 });
     }
 
-    // Removed revalidateTag to fix build error. Revalidation will happen every 60s.
+    // Clear global cache so the site updates immediately
+    revalidatePath('/', 'layout');
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
