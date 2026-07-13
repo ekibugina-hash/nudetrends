@@ -25,7 +25,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         // Session cookie is set server-side — navigate to admin
-        router.push('/admin');
+        router.push('/ekibugina');
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error || 'Invalid admin credentials. Please try again.');
