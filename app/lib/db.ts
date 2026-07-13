@@ -186,16 +186,21 @@ async function getMergedVideosUncached(): Promise<Video[]> {
         const parts = key.split('/');
 
         let title = parts[parts.length - 1]?.split('.')[0] || 'Untitled';
+        title = title.replace(/•\s*Nodo Leaks?/gi, '').trim(); // strip branding
+        title = title.replace(/_\d+$/, '').trim();              // strip trailing _1, _2, etc.
         title = title.replace(/[-_]/g, ' ');
         title = title.replace(/\b(SD|HD|1080p|720p|4K)\b/gi, '').trim();
         title = title.replace(/\s+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+        // Generic storage folder names that are NOT topic names
+        const GENERIC_FOLDERS = new Set(['video', 'videos', 'images', 'image', 'nudes', 'nude', 'media', 'uploads']);
+
         let creator = 'Premium Leak';
-        if (parts.length >= 2) {
-          // File is inside a folder — use the top-level folder name as the topic
+        if (parts.length >= 2 && !GENERIC_FOLDERS.has(parts[0].toLowerCase())) {
+          // Named folder — treat folder name as the topic
           creator = parts[0];
         } else {
-          // Root-level file (no folder) — use the cleaned filename as the topic
+          // Generic folder (video/, images/ etc.) or root-level — use cleaned filename as topic
           creator = title;
         }
 
