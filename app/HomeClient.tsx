@@ -408,20 +408,18 @@ export default function HomeClient({ initialCreators }: { initialCreators: Creat
                 </div>
 
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 pt-8 border-t border-stone-900 mt-8">
+                  <div className="flex items-center justify-center gap-2 pt-8 border-t border-stone-900 mt-8 animate-fadeIn">
                     <button
                       disabled={currentPage === 1}
                       onClick={() => { setCurrentPage(p => Math.max(p - 1, 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                      className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-stone-850 border border-stone-850 hover:border-stone-700 text-stone-400 hover:text-white text-xs font-bold font-mono transition disabled:opacity-30 disabled:cursor-not-allowed"
-                    >&lt; Prev</button>
+                      className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-stone-850 border border-stone-850 hover:border-stone-700 text-stone-400 hover:text-white text-xs font-bold font-mono transition disabled:opacity-30 disabled:hover:bg-stone-900 disabled:hover:text-stone-400 disabled:cursor-not-allowed"
+                    >
+                      &lt; Prev
+                    </button>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition ${currentPage === page ? 'bg-orange-500 text-stone-950 shadow-lg shadow-orange-500/25' : 'bg-stone-900 hover:bg-stone-850 border border-stone-850 hover:border-stone-700 text-stone-400 hover:text-white'}`}
-                      >{page}</button>
-                    ))}
+                    <span className="text-stone-400 text-xs font-mono font-bold mx-2">
+                      Page {currentPage} of {totalPages}
+                    </span>
 
                     <button
                       disabled={currentPage === totalPages}
