@@ -330,37 +330,49 @@ async function getCreatorsUncached(): Promise<Creator[]> {
   const mergedVideos = await getMergedVideosUncached();
   const dbCreators = await readDb('creators.json');
   const customThumbnails: Record<string, string> = {};
+  const configuredNames = new Set<string>();
   
   if (Array.isArray(dbCreators)) {
     dbCreators.forEach((c: any) => {
-      if (c.name && c.thumbnailUrl) {
-        customThumbnails[c.name] = c.thumbnailUrl;
+      if (c.name) {
+        configuredNames.add(c.name);
+        if (c.thumbnailUrl) {
+          customThumbnails[c.name] = c.thumbnailUrl;
+        }
       }
     });
   }
 
-  const creatorsMap = new Map<string, Creator>();
+  const creatorsMap = new Map<string, Creator & { videos: any[] }>();
 
   mergedVideos.forEach(vid => {
     if (!vid.creator) return;
     const name = vid.creator;
     if (!creatorsMap.has(name)) {
       creatorsMap.set(name, {
-        name: name,
-        thumbnailUrl: customThumbnails[name] || vid.thumbnailUrl || vid.imageUrl || vid.videoUrl,
-        gradient: deterministicGradient(name)
+        name,
+        thumbnailUrl: customThumbnails[name] || vid.thumbnailUrl || vid.imageUrl || undefined,
+        videoUrl: vid.videoUrl || undefined,
+        gradient: deterministicGradient(name),
+        hasTopicPage: configuredNames.has(name),
+        firstVideo: vid,
+        videos: [vid],
       });
-    } else if (!customThumbnails[name] && !creatorsMap.get(name)?.thumbnailUrl?.startsWith('http')) {
-      // If we don't have a custom thumbnail yet, try to find a better one
-      if (vid.thumbnailUrl || vid.imageUrl || vid.videoUrl) {
-        const existing = creatorsMap.get(name)!;
-        existing.thumbnailUrl = vid.thumbnailUrl || vid.imageUrl || vid.videoUrl;
-        creatorsMap.set(name, existing);
+    } else {
+      const existing = creatorsMap.get(name)!;
+      existing.videos.push(vid);
+      // Keep upgrading thumbnail: prefer custom > image thumbnail > video thumbnail
+      if (!existing.thumbnailUrl || (!customThumbnails[name] && !existing.thumbnailUrl.startsWith('http'))) {
+        existing.thumbnailUrl = customThumbnails[name] || vid.thumbnailUrl || vid.imageUrl || existing.thumbnailUrl;
       }
+      creatorsMap.set(name, existing);
     }
   });
 
-  return Array.from(creatorsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  return Array.from(creatorsMap.values()).map(({ videos, ...creator }) => ({
+    ...creator,
+    videoCount: videos.length,
+  })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export const getCreators = unstable_cache(

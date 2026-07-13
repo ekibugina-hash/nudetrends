@@ -22,7 +22,11 @@ export interface Video {
 export interface Creator {
   name: string;
   thumbnailUrl?: string;
+  videoUrl?: string;       // First video URL for auto-thumbnail
   gradient: string;
+  hasTopicPage?: boolean;  // True if explicitly configured in admin (creators.json)
+  videoCount?: number;     // Total videos under this topic
+  firstVideo?: Video;      // First video — used for direct play when hasTopicPage is false
 }
 
 export interface MediaAttachment {
