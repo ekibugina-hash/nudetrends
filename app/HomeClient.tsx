@@ -46,15 +46,54 @@ function TopicCard({
 
   const showVideoThumb = !creator.thumbnailUrl && creator.videoUrl;
 
-  // When video metadata loads, seek to second 3 to grab a frame
+  // Seek positions to try in order (skip black intros)
+  const SEEK_POSITIONS = [20, 10, 5, 2];
+  const seekIndexRef = useRef(0);
+
+  const trySeek = (el: HTMLVideoElement) => {
+    const pos = SEEK_POSITIONS[seekIndexRef.current] ?? 2;
+    // Don't seek past video duration
+    el.currentTime = Math.min(pos, el.duration > 0 ? el.duration * 0.3 : pos);
+  };
+
   const handleMetadata = () => {
     const el = videoRef.current;
     if (!el) return;
-    el.currentTime = 3;
+    seekIndexRef.current = 0;
+    trySeek(el);
   };
 
-  // When seek completes, the frame is painted — reveal the video
   const handleSeeked = () => {
+    const el = videoRef.current;
+    if (!el) return;
+
+    // Use canvas to detect if frame is blank (all/mostly black)
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 18;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(el, 0, 0, 32, 18);
+        const data = ctx.getImageData(0, 0, 32, 18).data;
+        let brightness = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          brightness += data[i] + data[i + 1] + data[i + 2];
+        }
+        const avgBrightness = brightness / (data.length / 4 * 3);
+        if (avgBrightness < 8) {
+          // Frame is too dark — try next position
+          seekIndexRef.current += 1;
+          if (seekIndexRef.current < SEEK_POSITIONS.length) {
+            trySeek(el);
+            return;
+          }
+        }
+      }
+    } catch {
+      // canvas tainted or unavailable — just show whatever frame we got
+    }
+
     setThumbReady(true);
   };
 
