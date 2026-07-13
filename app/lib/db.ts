@@ -191,8 +191,12 @@ async function getMergedVideosUncached(): Promise<Video[]> {
         title = title.replace(/\s+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
         let creator = 'Premium Leak';
-        if (parts.length >= 3) {
-          creator = parts[1];
+        if (parts.length >= 2) {
+          // File is inside a folder — use the top-level folder name as the topic
+          creator = parts[0];
+        } else {
+          // Root-level file (no folder) — use the cleaned filename as the topic
+          creator = title;
         }
 
         let category = isVideo ? 'Trending Videos' : 'Nudes';
