@@ -23,7 +23,7 @@ import {
   LogOut,
   Pin
 } from 'lucide-react';
-import { Video } from '../types';
+import { Video, Creator } from '../types';
 
 // Reusable video thumbnail that properly seeks to 20s
 function AdminVideoThumb({ videoUrl, title, gradient }: { videoUrl: string; title: string; gradient?: string }) {
@@ -56,7 +56,7 @@ export default function AdminPage() {
   const [interestingTitlesMap, setInterestingTitlesMap] = useState<Record<string, string[]>>({});
   
   // Tabs
-  const [activeTab, setActiveTab] = useState<'manage' | 'upload' | 'ads'>('manage');
+  const [activeTab, setActiveTab] = useState<'manage' | 'upload' | 'ads' | 'topics'>('manage');
   
   // Notification State
   const [notification, setNotification] = useState<string | null>(null);
@@ -107,6 +107,14 @@ export default function AdminPage() {
   const [newAttachmentType, setNewAttachmentType] = useState<'video' | 'image'>('video');
   const [newAttachmentUrl, setNewAttachmentUrl] = useState('');
 
+  // Creators State
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [selectedCreatorName, setSelectedCreatorName] = useState<string>('');
+  const [creatorThumbnailSource, setCreatorThumbnailSource] = useState<'none' | 'file' | 'url'>('none');
+  const [creatorThumbnailFile, setCreatorThumbnailFile] = useState<File | null>(null);
+  const [creatorThumbnailUrl, setCreatorThumbnailUrl] = useState('');
+  const [creatorThumbnailUploading, setCreatorThumbnailUploading] = useState(false);
+
   // Auth gate check & data loader on mount
   useEffect(() => {
     const checkSession = async () => {
@@ -139,6 +147,19 @@ export default function AdminPage() {
         console.error('Admin: Failed to load videos:', e);
       } finally {
         setR2Loading(false);
+      }
+
+      // Load creators
+      try {
+        const res = await fetch('/api/creators');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.creators) {
+            setCreators(data.creators);
+          }
+        }
+      } catch (e) {
+        console.error('Admin: Failed to load creators');
       }
 
       // Load ads config
@@ -474,6 +495,65 @@ export default function AdminPage() {
     }
   };
 
+  // Save Creator/Topic Thumbnail
+  const handleSaveCreatorThumbnail = async () => {
+    if (!selectedCreatorName) return;
+
+    let finalThumbnailUrl = '';
+    if (creatorThumbnailSource === 'file' && creatorThumbnailFile) {
+      setCreatorThumbnailUploading(true);
+      triggerNotification('Uploading custom topic thumbnail to R2...');
+      try {
+        const res = await fetch('/api/get-presigned-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: creatorThumbnailFile.name, fileType: creatorThumbnailFile.type }),
+        });
+        if (!res.ok) throw new Error('Failed to request thumbnail upload signature.');
+        const { uploadUrl, publicUrl } = await res.json();
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': creatorThumbnailFile.type },
+          body: creatorThumbnailFile,
+        });
+        if (!uploadRes.ok) throw new Error('Thumbnail direct R2 upload failed.');
+        finalThumbnailUrl = publicUrl;
+      } catch (err: any) {
+        console.error(err);
+        triggerNotification(`Thumbnail upload failed: ${err.message}`, 'error');
+        setCreatorThumbnailUploading(false);
+        return;
+      } finally {
+        setCreatorThumbnailUploading(false);
+      }
+    } else if (creatorThumbnailSource === 'url') {
+      finalThumbnailUrl = creatorThumbnailUrl.trim();
+    } else if (creatorThumbnailSource === 'none') {
+      triggerNotification('Please provide a file or URL for the thumbnail', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/creators', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: selectedCreatorName, thumbnailUrl: finalThumbnailUrl }),
+      });
+      if (res.ok) {
+        setCreators(prev => prev.map(c => c.name === selectedCreatorName ? { ...c, thumbnailUrl: finalThumbnailUrl } : c));
+        triggerNotification('Topic thumbnail updated successfully!');
+        setSelectedCreatorName('');
+        setCreatorThumbnailSource('none');
+        setCreatorThumbnailFile(null);
+        setCreatorThumbnailUrl('');
+      } else {
+        throw new Error('Failed to save creator thumbnail');
+      }
+    } catch (e: any) {
+      triggerNotification(`Update failed: ${e.message}`, 'error');
+    }
+  };
+
   // Upload Custom Media (Video/Image)
   const handleCreateMedia = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -678,6 +758,14 @@ export default function AdminPage() {
                 }`}
               >
                 Add Item
+              </button>
+              <button
+                onClick={() => setActiveTab('topics')}
+                className={`py-2 px-3 rounded-lg text-[10px] sm:text-xs font-bold transition text-center ${
+                  activeTab === 'topics' ? 'bg-orange-600 text-stone-950' : 'bg-stone-900 text-stone-400 hover:text-white'
+                }`}
+              >
+                Topics Control
               </button>
               <button
                 onClick={() => setActiveTab('ads')}
@@ -1926,8 +2014,93 @@ export default function AdminPage() {
           </div>
         )}
 
-      </main>
+        {/* TAB 4: TOPICS CONTROL */}
+        {activeTab === 'topics' && (
+          <div className="space-y-6 max-w-4xl animate-fadeIn">
+            <h2 className="text-xl font-black text-stone-200">Topics / Models Management</h2>
+            <p className="text-sm text-stone-400">Manage the thumbnails for the topics displayed on the home page.</p>
 
+            <div className="bg-stone-900/40 border border-stone-850 rounded-2xl p-6">
+              <label className="block text-xs font-mono font-bold text-stone-500 uppercase tracking-wider mb-2">Select a Topic to Edit Thumbnail</label>
+              <select 
+                value={selectedCreatorName}
+                onChange={(e) => setSelectedCreatorName(e.target.value)}
+                className="w-full bg-stone-950 border border-stone-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-orange-500 text-stone-200 mb-6"
+              >
+                <option value="">-- Select a Topic --</option>
+                {creators.map(c => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+
+              {selectedCreatorName && (
+                <div className="space-y-4 pt-4 border-t border-stone-800">
+                  <h3 className="font-bold text-stone-200">Set Thumbnail for {selectedCreatorName}</h3>
+                  <div className="flex gap-4 mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" checked={creatorThumbnailSource === 'file'} onChange={() => setCreatorThumbnailSource('file')} />
+                      <span className="text-sm text-stone-300">Upload Image</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" checked={creatorThumbnailSource === 'url'} onChange={() => setCreatorThumbnailSource('url')} />
+                      <span className="text-sm text-stone-300">Image URL</span>
+                    </label>
+                  </div>
+                  
+                  {creatorThumbnailSource === 'file' && (
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => setCreatorThumbnailFile(e.target.files?.[0] || null)}
+                      className="block w-full text-sm text-stone-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-orange-500/10 file:text-orange-500 hover:file:bg-orange-500/20"
+                    />
+                  )}
+                  {creatorThumbnailSource === 'url' && (
+                    <input 
+                      type="url" 
+                      placeholder="https://example.com/image.jpg"
+                      value={creatorThumbnailUrl}
+                      onChange={(e) => setCreatorThumbnailUrl(e.target.value)}
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-orange-500 text-stone-200"
+                    />
+                  )}
+
+                  <div className="pt-4 flex justify-end">
+                    <button
+                      onClick={handleSaveCreatorThumbnail}
+                      disabled={creatorThumbnailUploading || creatorThumbnailSource === 'none' || (creatorThumbnailSource === 'file' && !creatorThumbnailFile) || (creatorThumbnailSource === 'url' && !creatorThumbnailUrl)}
+                      className="bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-stone-950 px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition"
+                    >
+                      {creatorThumbnailUploading ? (
+                        <span className="w-4 h-4 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      <span>Save Thumbnail</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+              {creators.map(c => (
+                <div key={c.name} className="relative aspect-[3/4] bg-stone-900 rounded-xl overflow-hidden border border-stone-800 shadow-md">
+                   {c.thumbnailUrl ? (
+                     <img src={c.thumbnailUrl} alt={c.name} className="w-full h-full object-cover" />
+                   ) : (
+                     <div className="w-full h-full" style={{ backgroundImage: c.gradient }} />
+                   )}
+                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-950 via-stone-950/80 to-transparent p-3">
+                     <p className="text-white font-bold text-sm truncate">{c.name}</p>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </main>
     </div>
   );
 }

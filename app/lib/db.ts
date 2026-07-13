@@ -1,7 +1,7 @@
 import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import fs from 'fs/promises';
 import path from 'path';
-import { Video } from '../types';
+import { Video, Creator } from '../types';
 import { unstable_cache } from 'next/cache';
 
 // ─── Shared S3 Client ──────────────────────────────────────────────────────
@@ -315,4 +315,47 @@ export const getMergedVideos = unstable_cache(
   getMergedVideosUncached,
   ['merged-videos'],
   { revalidate: 60, tags: ['videos'] }
+);
+
+async function getCreatorsUncached(): Promise<Creator[]> {
+  const mergedVideos = await getMergedVideosUncached();
+  const dbCreators = await readDb('creators.json');
+  const customThumbnails: Record<string, string> = {};
+  
+  if (Array.isArray(dbCreators)) {
+    dbCreators.forEach((c: any) => {
+      if (c.name && c.thumbnailUrl) {
+        customThumbnails[c.name] = c.thumbnailUrl;
+      }
+    });
+  }
+
+  const creatorsMap = new Map<string, Creator>();
+
+  mergedVideos.forEach(vid => {
+    if (!vid.creator) return;
+    const name = vid.creator;
+    if (!creatorsMap.has(name)) {
+      creatorsMap.set(name, {
+        name: name,
+        thumbnailUrl: customThumbnails[name] || vid.thumbnailUrl || vid.imageUrl || vid.videoUrl,
+        gradient: deterministicGradient(name)
+      });
+    } else if (!customThumbnails[name] && !creatorsMap.get(name)?.thumbnailUrl?.startsWith('http')) {
+      // If we don't have a custom thumbnail yet, try to find a better one
+      if (vid.thumbnailUrl || vid.imageUrl || vid.videoUrl) {
+        const existing = creatorsMap.get(name)!;
+        existing.thumbnailUrl = vid.thumbnailUrl || vid.imageUrl || vid.videoUrl;
+        creatorsMap.set(name, existing);
+      }
+    }
+  });
+
+  return Array.from(creatorsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export const getCreators = unstable_cache(
+  getCreatorsUncached,
+  ['creators-list'],
+  { revalidate: 60, tags: ['creators'] }
 );

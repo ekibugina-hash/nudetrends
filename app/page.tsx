@@ -1,4 +1,4 @@
-import { getMergedVideos } from './lib/db';
+import { getCreators } from './lib/db';
 import HomeClient from './HomeClient';
 
 // Cache this page at the edge for 60 seconds.
@@ -7,6 +7,6 @@ import HomeClient from './HomeClient';
 export const revalidate = 60;
 
 export default async function Page() {
-  const initialVideos = await getMergedVideos();
-  return <HomeClient initialVideos={initialVideos} />;
+  const initialCreators = await getCreators();
+  return <HomeClient initialCreators={initialCreators} />;
 }

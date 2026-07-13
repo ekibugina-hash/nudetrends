@@ -19,6 +19,12 @@ export interface Video {
   attachments?: MediaAttachment[]; // Related videos/images attached to this video
 }
 
+export interface Creator {
+  name: string;
+  thumbnailUrl?: string;
+  gradient: string;
+}
+
 export interface MediaAttachment {
   id: string;
   type: 'video' | 'image';
