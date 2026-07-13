@@ -62,9 +62,6 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to update videos database file');
     }
 
-    // @ts-ignore
-    revalidateTag('videos');
-
     // 2. If it's hosted in R2, delete the S3 object
     let r2Deleted = false;
     const bucketName = process.env.R2_BUCKET_NAME;

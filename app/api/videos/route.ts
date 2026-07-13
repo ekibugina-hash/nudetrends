@@ -61,11 +61,8 @@ export async function POST(request: NextRequest) {
 
     const success = await writeVideosToFile(dbVideos);
     if (!success) {
-      throw new Error('Failed to write videos database file');
+      return NextResponse.json({ error: 'Failed to write to DB' }, { status: 500 });
     }
-
-    // @ts-ignore
-    revalidateTag('videos');
 
     return NextResponse.json({
       success: true,

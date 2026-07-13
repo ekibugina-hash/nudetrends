@@ -61,8 +61,6 @@ export async function POST(request: NextRequest) {
     }
 
     await writeVideosToFile(dbVideos);
-    // @ts-ignore
-    revalidateTag('videos');
 
     return NextResponse.json({
       success: true,
