@@ -319,9 +319,9 @@ export default function CreatorClient({ videos, creatorName, bio }: { videos: Vi
               <div className="flex items-center gap-4">
                 <Link 
                   href="/"
-                  className="text-xs text-stone-400 hover:text-orange-500 flex items-center gap-1 transition"
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-stone-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" /> Back to Topics
+                  <ArrowLeft className="w-3.5 h-3.5" /> Back
                 </Link>
                 {searchQuery && (
                   <button 
@@ -367,22 +367,9 @@ export default function CreatorClient({ videos, creatorName, bio }: { videos: Vi
                       &lt; Prev
                     </button>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        onClick={() => {
-                          setCurrentPage(page);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition ${
-                          currentPage === page
-                            ? 'bg-orange-500 text-stone-950 shadow-lg shadow-orange-500/25'
-                            : 'bg-stone-900 hover:bg-stone-850 border border-stone-850 hover:border-stone-700 text-stone-450 hover:text-white'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
+                    <span className="text-stone-400 text-xs font-mono font-bold mx-2">
+                      Page {currentPage} of {totalPages}
+                    </span>
 
                     <button
                       disabled={currentPage === totalPages}
