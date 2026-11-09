@@ -157,7 +157,7 @@ export default function CreatorClient({ videos, creatorName, bio }: { videos: Vi
   const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>({
     enabled: true,
     imageUrl: '/images/sponsor-banner.jpg',
-    linkUrl: 'https://ugandasexybabes.afrozex.com',
+    linkUrl: 'https://www.hexescortsug.com',
   });
 
   useEffect(() => {
@@ -301,8 +301,8 @@ export default function CreatorClient({ videos, creatorName, bio }: { videos: Vi
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 space-y-8">
         
         {bannerAd && bannerAd.enabled && bannerAd.imageUrl && (
-          <div className="w-full bg-[#111111] border border-orange-500/25 p-1 rounded-xl flex items-center justify-center relative overflow-hidden group shadow-lg">
-            <a href={bannerAd.linkUrl || "#"} target="_blank" rel="noopener noreferrer" className="w-full h-20 sm:h-24 relative block">
+          <div className="w-full max-w-4xl mx-auto bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 sm:p-1.5 rounded-2xl border border-pink-500/40 flex items-center justify-center relative overflow-hidden group shadow-2xl">
+            <a href={bannerAd.linkUrl || "https://www.hexescortsug.com"} target="_blank" rel="noopener noreferrer" className="w-full aspect-[16/9] relative block">
               <img src={bannerAd.imageUrl} alt="Sponsor Banner Ad" className="w-full h-full object-cover rounded-lg group-hover:scale-[1.005] transition-transform duration-300" />
               <span className="absolute bottom-2 right-2 bg-stone-950/85 backdrop-blur-sm text-[8px] font-mono font-black text-orange-400 px-2 py-0.5 rounded border border-orange-500/20 uppercase">
                 SPONSOR AD

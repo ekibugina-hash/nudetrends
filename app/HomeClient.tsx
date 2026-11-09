@@ -242,7 +242,7 @@ export default function HomeClient({
   const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>({
     enabled: true,
     imageUrl: '/images/sponsor-banner.jpg',
-    linkUrl: 'https://ugandasexybabes.afrozex.com',
+    linkUrl: 'https://www.hexescortsug.com',
   });
   const [popupAd, setPopupAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
   const [showPopupModal, setShowPopupModal] = useState(false);
@@ -514,22 +514,24 @@ export default function HomeClient({
 
         {/* Sponsor Banner Ad */}
         {bannerAd?.enabled && bannerAd?.imageUrl && (
-          <div className="w-full bg-[#111111] border border-orange-500/30 p-1 rounded-2xl overflow-hidden group shadow-xl">
-            <a
-              href={bannerAd.linkUrl || 'https://ugandasexybabes.afrozex.com'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full h-32 sm:h-44 md:h-56 lg:h-64 relative block overflow-hidden rounded-xl bg-black"
-            >
-              <img
-                src={bannerAd.imageUrl}
-                alt="Hex Escorts UG - Ugandan Sexy Babes"
-                className="w-full h-full object-cover sm:object-contain md:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
-              />
-              <span className="absolute bottom-2.5 right-2.5 bg-stone-950/85 backdrop-blur-sm text-[8px] font-mono font-black text-orange-400 px-2 py-0.5 rounded border border-orange-500/30 uppercase tracking-widest shadow-md">
-                SPONSOR AD
-              </span>
-            </a>
+          <div className="w-full max-w-4xl mx-auto">
+            <div className="relative bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 sm:p-1.5 rounded-2xl border border-pink-500/40 shadow-2xl overflow-hidden group hover:border-pink-400/70 transition-all duration-300">
+              <a
+                href={bannerAd.linkUrl || 'https://www.hexescortsug.com'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative block w-full aspect-[16/9] rounded-xl overflow-hidden bg-black"
+              >
+                <img
+                  src={bannerAd.imageUrl}
+                  alt="Hex Escorts UG - www.hexescortsug.com"
+                  className="w-full h-full object-contain sm:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
+                />
+                <span className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[9px] font-mono font-black text-pink-400 px-2 py-0.5 rounded border border-pink-500/30 uppercase tracking-widest shadow-md">
+                  SPONSOR AD
+                </span>
+              </a>
+            </div>
           </div>
         )}
 
@@ -672,22 +674,24 @@ export default function HomeClient({
 
               {/* Banner ad on watch page */}
               {bannerAd?.enabled && bannerAd?.imageUrl && (
-                <div className="w-full bg-[#111111] border border-orange-500/20 p-1 rounded-xl overflow-hidden group shadow-lg mt-4">
-                  <a
-                    href={bannerAd.linkUrl || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full h-16 sm:h-20 relative block"
-                  >
-                    <img
-                      src={bannerAd.imageUrl}
-                      alt="Sponsor"
-                      className="w-full h-full object-cover rounded-lg group-hover:scale-[1.005] transition-transform duration-300"
-                    />
-                    <span className="absolute bottom-2 right-2 bg-stone-950/80 backdrop-blur-sm text-[8px] font-mono font-black text-orange-400 px-1.5 py-0.5 rounded border border-orange-500/20 uppercase">
-                      SPONSOR
-                    </span>
-                  </a>
+                <div className="w-full max-w-2xl mx-auto mt-4">
+                  <div className="relative bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/30 shadow-xl overflow-hidden group hover:border-pink-400/60 transition-all duration-300">
+                    <a
+                      href={bannerAd.linkUrl || 'https://www.hexescortsug.com'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative block w-full aspect-[16/9] rounded-xl overflow-hidden bg-black"
+                    >
+                      <img
+                        src={bannerAd.imageUrl}
+                        alt="Hex Escorts UG - www.hexescortsug.com"
+                        className="w-full h-full object-contain sm:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-300"
+                      />
+                      <span className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[8px] font-mono font-black text-pink-400 px-1.5 py-0.5 rounded border border-pink-500/30 uppercase tracking-widest shadow">
+                        SPONSOR
+                      </span>
+                    </a>
+                  </div>
                 </div>
               )}
 
