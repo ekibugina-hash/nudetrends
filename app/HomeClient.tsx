@@ -2,176 +2,89 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Compass,
   Search,
   CheckCircle2,
   Menu,
   X,
-  TrendingUp,
   Play,
   Video as VideoIcon,
-  Image as ImageIcon,
   Share2,
   ArrowLeft,
-  Layout,
-  ExternalLink,
 } from 'lucide-react';
-import { Creator, Video } from './types';
+import { Video } from './types';
 import VideoPlayer from './components/VideoPlayer';
 import CommentsSection from './components/CommentsSection';
 
-// ─── Admin-style Video Thumbnail (with 20s seek) ──────────────────────────────
-function AdminVideoThumb({ videoUrl, gradient }: { videoUrl: string; gradient?: string }) {
-  return (
-    <>
-      <div className="absolute inset-0 w-full h-full" style={{ backgroundImage: gradient }} />
-      <video
-        src={`${videoUrl}#t=20`}
-        className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
-        preload="metadata"
-        muted
-        playsInline
-      />
-    </>
-  );
-}
-
-// ─── Admin-style Topic Card ───────────────────────────────────────────────────
-function TopicCard({
-  creator,
-  onDirectPlay,
+// ─── High-Performance Video Thumbnail with Lazy Viewport Loading ───────────────
+function FastVideoThumb({
+  videoUrl,
+  gradient,
+  initials,
 }: {
-  creator: Creator;
-  onDirectPlay: (video: Video) => void;
+  videoUrl: string;
+  gradient?: string;
+  initials?: string;
 }) {
-  const router = useRouter();
+  const [isInView, setIsInView] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleClick = () => {
-    if (creator.hasTopicPage) {
-      router.push(`/creator/${encodeURIComponent(creator.name)}`);
-    } else if (creator.firstVideo) {
-      onDirectPlay(creator.firstVideo);
-    }
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    // Only load video metadata when card is within 150px of the viewport
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '150px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const handleLoaded = () => {
+    setIsLoaded(true);
   };
 
-  const showVideoThumb = !creator.thumbnailUrl && creator.videoUrl;
-  const isImage = creator.firstVideo?.type === 'image';
-  const duration = creator.firstVideo?.duration || (isImage ? 'IMAGE' : '03:45');
-  const interestingTitles = creator.firstVideo?.interestingTitles || [];
-
   return (
-    <div
-      onClick={handleClick}
-      className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.07] p-3.5 rounded-xl flex flex-col sm:flex-row gap-3 hover:border-orange-500/30 hover:bg-white/[0.05] transition-all shadow-sm group cursor-pointer"
-    >
-      {/* Responsive image wrapper */}
-      <div className="w-full sm:w-36 md:w-40 h-44 sm:h-24 rounded-lg bg-stone-950 border border-stone-900 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
-        {creator.thumbnailUrl ? (
-          <img
-            src={creator.thumbnailUrl}
-            alt={creator.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : showVideoThumb ? (
-          <div className="relative w-full h-full">
-            <AdminVideoThumb videoUrl={creator.videoUrl!} gradient={creator.gradient} />
-          </div>
-        ) : (
-          <div
-            className="w-full h-full flex items-center justify-center relative"
-            style={{ backgroundImage: creator.gradient }}
-          >
-            <span className="font-extrabold text-sm font-mono text-stone-300">
-              {creator.name.substring(0, 2).toUpperCase()}
-            </span>
-          </div>
-        )}
-
-        {/* Duration / Format badge */}
-        <span
-          className={`absolute bottom-1 right-1 text-[8px] font-mono px-1.5 py-0.5 rounded font-bold z-20 ${
-            isImage
-              ? 'bg-orange-600 text-stone-950 uppercase'
-              : 'bg-stone-950/80 text-stone-300 border border-white/5'
-          }`}
-        >
-          {isImage ? 'IMAGE' : duration}
+    <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-stone-950">
+      {/* Instant Fallback Gradient & Initials */}
+      <div
+        className="absolute inset-0 w-full h-full flex items-center justify-center transition-opacity duration-300"
+        style={{ backgroundImage: gradient }}
+      >
+        <span className="font-extrabold text-sm font-mono text-stone-400 select-none opacity-60">
+          {initials || 'NT'}
         </span>
-
-        {/* Video count badge */}
-        {creator.videoCount && creator.videoCount > 1 ? (
-          <span className="absolute top-1 left-1 bg-stone-950/85 border border-white/10 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded text-orange-400 z-20">
-            {creator.videoCount} videos
-          </span>
-        ) : null}
-
-        {/* Hover play icon */}
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-8 h-8 rounded-full bg-orange-500 text-stone-950 flex items-center justify-center shadow-lg">
-            <Play className="w-4 h-4 fill-current ml-0.5" />
-          </div>
-        </div>
       </div>
 
-      {/* Info details wrapper */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
-        <div>
-          <div className="flex justify-between items-start gap-2">
-            <h3
-              className="font-bold text-stone-200 text-xs sm:text-sm truncate flex-1 group-hover:text-orange-400 transition-colors"
-              title={creator.name}
-            >
-              {creator.name}
-            </h3>
-            {creator.hasTopicPage && (
-              <span className="bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[8px] font-mono font-black px-1.5 py-0.5 rounded uppercase flex-shrink-0">
-                Series
-              </span>
-            )}
-          </div>
-
-          <p className="text-[10px] text-stone-500 font-mono mt-1">
-            Topic: {creator.name}
-            {creator.videoCount ? ` | ${creator.videoCount} ${creator.videoCount === 1 ? 'video' : 'videos'}` : ''}
-            {creator.firstVideo?.views ? ` | ${creator.firstVideo.views}` : ''}
-          </p>
-
-          {(creator.bio || creator.firstVideo?.desc) && (
-            <p className="text-[11px] text-stone-400 line-clamp-2 mt-1 leading-relaxed">
-              {creator.bio || creator.firstVideo?.desc}
-            </p>
-          )}
-        </div>
-
-        {/* Interesting Titles / Tag Pills */}
-        <div className="pt-1.5 border-t border-stone-900/60 flex items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-1 flex-1 overflow-hidden">
-            {interestingTitles.length > 0 ? (
-              interestingTitles.slice(0, 3).map((t, idx) => (
-                <span
-                  key={idx}
-                  className="bg-stone-900 border border-stone-900/50 px-2 py-0.5 rounded-full text-[9px] text-stone-300 truncate max-w-[140px]"
-                >
-                  {t}
-                </span>
-              ))
-            ) : (
-              <span className="text-[9px] text-stone-600 font-mono">Exclusive Drop</span>
-            )}
-          </div>
-
-          <span className="text-[10px] font-mono font-bold text-orange-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 flex-shrink-0">
-            {creator.hasTopicPage ? 'View Series →' : 'Watch →'}
-          </span>
-        </div>
-      </div>
+      {/* Lazy Video element: only mounts when scrolled near viewport */}
+      {isInView && (
+        <video
+          src={`${videoUrl}#t=20`}
+          preload="metadata"
+          muted
+          playsInline
+          onLoadedData={handleLoaded}
+          onSeeked={handleLoaded}
+          className={`absolute inset-0 w-full h-full object-cover z-10 pointer-events-none transition-opacity duration-500 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      )}
     </div>
   );
 }
 
-// ─── Admin-style Media Card (for direct Video / Image items) ───────────────────
+// ─── Admin-style Media Card ───────────────────────────────────────────────────
 function MediaCard({
   media,
   onPlay,
@@ -188,24 +101,30 @@ function MediaCard({
       onClick={() => onPlay(media)}
       className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.07] p-3.5 rounded-xl flex flex-col sm:flex-row gap-3 hover:border-orange-500/30 hover:bg-white/[0.05] transition-all shadow-sm group cursor-pointer"
     >
-      {/* Responsive image wrapper */}
-      <div className="w-full sm:w-36 md:w-40 h-44 sm:h-24 rounded-lg bg-stone-950 border border-stone-900 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+      {/* Responsive thumbnail wrapper */}
+      <div className="w-full sm:w-36 md:w-44 h-44 sm:h-24 md:h-28 rounded-lg bg-stone-950 border border-stone-900 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
         {media.thumbnailUrl ? (
           <img
             src={media.thumbnailUrl}
             alt={media.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : isImage && media.imageUrl ? (
           <img
             src={media.imageUrl}
             alt={media.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : media.videoUrl ? (
-          <div className="relative w-full h-full">
-            <AdminVideoThumb videoUrl={media.videoUrl} gradient={media.gradient} />
-          </div>
+          <FastVideoThumb
+            videoUrl={media.videoUrl}
+            gradient={media.gradient}
+            initials={media.initials}
+          />
         ) : (
           <div
             className="w-full h-full flex items-center justify-center"
@@ -217,6 +136,7 @@ function MediaCard({
           </div>
         )}
 
+        {/* Badge on thumbnail */}
         <span
           className={`absolute bottom-1 right-1 text-[8px] font-mono px-1.5 py-0.5 rounded font-bold z-20 ${
             isImage
@@ -227,6 +147,7 @@ function MediaCard({
           {isImage ? 'IMAGE' : duration}
         </span>
 
+        {/* Play hover button */}
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="w-8 h-8 rounded-full bg-orange-500 text-stone-950 flex items-center justify-center shadow-lg">
             <Play className="w-4 h-4 fill-current ml-0.5" />
@@ -296,15 +217,12 @@ function MediaCard({
 
 // ─── Home Client Main ─────────────────────────────────────────────────────────
 export default function HomeClient({
-  initialCreators = [],
   initialVideos = [],
 }: {
-  initialCreators: Creator[];
+  initialCreators?: any[];
   initialVideos?: Video[];
 }) {
-  const [creators] = useState<Creator[]>(initialCreators);
-  const [videos] = useState<Video[]>(initialVideos);
-  const [activeTab, setActiveTab] = useState<'topics' | 'trending' | 'nudes'>('topics');
+  const [videos, setVideos] = useState<Video[]>(initialVideos);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
@@ -324,6 +242,18 @@ export default function HomeClient({
   const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
   const [popupAd, setPopupAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
   const [showPopupModal, setShowPopupModal] = useState(false);
+
+  // Shuffle videos on mount/refresh
+  useEffect(() => {
+    if (initialVideos && initialVideos.length > 0) {
+      const shuffled = [...initialVideos];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      setVideos(shuffled);
+    }
+  }, [initialVideos]);
 
   useEffect(() => {
     const fetchAds = async () => {
@@ -346,7 +276,7 @@ export default function HomeClient({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, activeTab]);
+  }, [searchQuery]);
 
   const triggerNotification = (msg: string) => {
     setNotification(msg);
@@ -377,46 +307,16 @@ export default function HomeClient({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Filtered lists
-  const filteredCreators = creators.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filtered videos
+  const filteredVideos = videos.filter((v) =>
+    (v.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (v.creator || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (v.desc || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const trendingVideos = videos.filter(
-    (item) => item.category === 'Trending Videos' || item.type === 'video'
-  );
-  const filteredTrending = trendingVideos.filter((v) =>
-    v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.creator.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredVideos.length / ITEMS_PER_PAGE));
 
-  const nudesImages = videos.filter(
-    (item) => item.category === 'Nudes' || item.type === 'image'
-  );
-  const filteredNudes = nudesImages.filter((v) =>
-    v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.creator.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Active items based on current active tab
-  let activeListLength = 0;
-  if (activeTab === 'topics') activeListLength = filteredCreators.length;
-  else if (activeTab === 'trending') activeListLength = filteredTrending.length;
-  else if (activeTab === 'nudes') activeListLength = filteredNudes.length;
-
-  const totalPages = Math.max(1, Math.ceil(activeListLength / ITEMS_PER_PAGE));
-
-  const paginatedCreators = filteredCreators.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
-  const paginatedTrending = filteredTrending.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
-  const paginatedNudes = filteredNudes.slice(
+  const paginatedVideos = filteredVideos.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
@@ -496,105 +396,63 @@ export default function HomeClient({
                 </button>
               </div>
 
-              {/* Sidebar links */}
+              {/* Sidebar Channels */}
               <div className="space-y-2 pt-4">
-                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-widest block">Categories</span>
-                <button
-                  onClick={() => { setActiveTab('topics'); setActiveView('grid'); setIsSidebarOpen(false); }}
-                  className={`w-full text-left py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                    activeTab === 'topics' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-white hover:bg-stone-900'
-                  }`}
+                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-widest block">Channels</span>
+                <a
+                  href="https://t.me/+d5-D8vyHKuMzZDdk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg transition"
                 >
-                  <Layout className="w-3.5 h-3.5" />
-                  <span>Topics & Models</span>
-                </button>
-                <button
-                  onClick={() => { setActiveTab('trending'); setActiveView('grid'); setIsSidebarOpen(false); }}
-                  className={`w-full text-left py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                    activeTab === 'trending' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-white hover:bg-stone-900'
-                  }`}
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M19.9 3.01L2.24 9.81c-1.13.45-1.12 1.09-.2 1.37l4.53 1.41 10.5-6.62c.5-.3.95-.14.57.2L9.1 14.67v3.38c.33 0 .48-.15.66-.33l1.58-1.54 3.29 2.43c.6.33 1.04.16 1.19-.55l2.16-10.2c.22-.88-.34-1.28-.98-1z" />
+                  </svg>
+                  <span>Telegram Link</span>
+                </a>
+                <a
+                  href="https://x.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 bg-black hover:bg-stone-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg transition border border-stone-800"
                 >
-                  <VideoIcon className="w-3.5 h-3.5" />
-                  <span>Trending Videos</span>
-                </button>
-                <button
-                  onClick={() => { setActiveTab('nudes'); setActiveView('grid'); setIsSidebarOpen(false); }}
-                  className={`w-full text-left py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                    activeTab === 'nudes' ? 'bg-orange-600 text-stone-950' : 'text-stone-400 hover:text-white hover:bg-stone-900'
-                  }`}
-                >
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  <span>Nudes & Images</span>
-                </button>
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  <span>Twitter / X Feed</span>
+                </a>
               </div>
-            </div>
-
-            {/* Sidebar bottom */}
-            <div className="space-y-2 pt-4 border-t border-stone-900">
-              <span className="text-[10px] font-mono text-stone-500 uppercase tracking-widest block">Channels</span>
-              <a
-                href="https://t.me/+d5-D8vyHKuMzZDdk"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg transition"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M19.9 3.01L2.24 9.81c-1.13.45-1.12 1.09-.2 1.37l4.53 1.41 10.5-6.62c.5-.3.95-.14.57.2L9.1 14.67v3.38c.33 0 .48-.15.66-.33l1.58-1.54 3.29 2.43c.6.33 1.04.16 1.19-.55l2.16-10.2c.22-.88-.34-1.28-.98-1z" />
-                </svg>
-                <span>Telegram Link</span>
-              </a>
-              <a
-                href="https://x.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 bg-black hover:bg-stone-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg transition border border-stone-800"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-                <span>Twitter / X Feed</span>
-              </a>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Sticky Top Header (Admin-styled) ─────────────────────────────────── */}
+      {/* ── Sticky Top Header ─────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-[1000] bg-[#0c0c0c]/95 backdrop-blur-md border-b border-stone-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center justify-between gap-3 w-full md:w-auto">
-            <Link
-              href="/"
-              className="flex items-center gap-2 cursor-pointer group"
-              onClick={() => { setActiveView('grid'); setActiveVideo(null); }}
-            >
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-500/60 bg-black flex-shrink-0 shadow-md shadow-orange-500/20">
-                <img src="/logo.png" alt="Nude Trends" className="w-full h-full object-cover" />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-white text-base tracking-tighter uppercase">Nude</span>
-                <span className="bg-orange-500 text-black px-2 py-0.5 rounded font-black text-xs uppercase tracking-wider">
-                  TRENDS
-                </span>
-              </div>
-            </Link>
-
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden p-2 text-amber-400 hover:text-amber-300 bg-stone-900 border border-amber-500/30 hover:border-amber-400/60 rounded-lg transition"
-              title="Open Navigation"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+          <Link
+            href="/"
+            className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
+            onClick={() => { setActiveView('grid'); setActiveVideo(null); }}
+          >
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-500/60 bg-black flex-shrink-0 shadow-md shadow-orange-500/20">
+              <img src="/logo.png" alt="Nude Trends" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-white text-base tracking-tighter uppercase">Nude</span>
+              <span className="bg-orange-500 text-black px-2 py-0.5 rounded font-black text-xs uppercase tracking-wider">
+                TRENDS
+              </span>
+            </div>
+          </Link>
 
           {/* Desktop Search */}
-          <div className="hidden md:flex flex-1 max-w-md items-center mx-4">
+          <div className="hidden md:flex flex-1 max-w-lg items-center mx-4">
             <div className="relative flex-1">
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search topics, models, or tags..."
+                placeholder="Search trending videos, models, or tags..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
@@ -611,54 +469,19 @@ export default function HomeClient({
             </div>
             <button
               onClick={() => searchInputRef.current?.focus()}
-              className="bg-stone-900 hover:bg-stone-850 text-stone-300 px-3 py-1.5 rounded-lg ml-1.5 border border-stone-800 transition-colors"
+              className="bg-stone-900 hover:bg-stone-850 text-stone-300 px-3 py-1.5 rounded-lg ml-1.5 border border-stone-800 transition-colors cursor-pointer"
             >
               <Search className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Navigation Tabs (Admin Style) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full md:w-auto scrollbar-none">
-            <button
-              onClick={() => { setActiveTab('topics'); setActiveView('grid'); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                activeTab === 'topics' && activeView === 'grid'
-                  ? 'bg-orange-600 text-stone-950'
-                  : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800/80'
-              }`}
-            >
-              <Layout className="w-3.5 h-3.5" />
-              <span>Topics ({creators.length})</span>
-            </button>
-
-            {trendingVideos.length > 0 && (
-              <button
-                onClick={() => { setActiveTab('trending'); setActiveView('grid'); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  activeTab === 'trending' && activeView === 'grid'
-                    ? 'bg-orange-600 text-stone-950'
-                    : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800/80'
-                }`}
-              >
-                <VideoIcon className="w-3.5 h-3.5" />
-                <span>Trending Videos ({trendingVideos.length})</span>
-              </button>
-            )}
-
-            {nudesImages.length > 0 && (
-              <button
-                onClick={() => { setActiveTab('nudes'); setActiveView('grid'); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  activeTab === 'nudes' && activeView === 'grid'
-                    ? 'bg-orange-600 text-stone-950'
-                    : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800/80'
-                }`}
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span>Nudes ({nudesImages.length})</span>
-              </button>
-            )}
-          </div>
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="md:hidden p-2 text-amber-400 hover:text-amber-300 bg-stone-900 border border-amber-500/30 hover:border-amber-400/60 rounded-lg transition"
+            title="Open Navigation"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </div>
       </header>
 
@@ -670,7 +493,7 @@ export default function HomeClient({
             <div className="relative flex-1">
               <input
                 type="text"
-                placeholder="Search topics, models, or tags..."
+                placeholder="Search trending videos, models, or tags..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-stone-950 border border-stone-800 rounded-lg py-2 pl-3 pr-3 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-500"
@@ -709,17 +532,11 @@ export default function HomeClient({
         {/* ── GRID VIEW (Admin Display Layout) ────────────────────────────────── */}
         {activeView === 'grid' && (
           <div className="space-y-6 animate-fadeIn">
-            {/* Section Header (Admin Style) */}
-            <div className="flex items-center justify-between border-b border-stone-800/80 pb-3">
+            {/* Section Header: Trending Videos (NO NUMBER) */}
+            <div className="flex items-center justify-between border-b border-stone-850 pb-3">
               <h2 className="text-xs font-extrabold text-orange-400 uppercase tracking-widest flex items-center gap-2">
-                {activeTab === 'topics' && <Layout className="w-3.5 h-3.5 text-orange-500" />}
-                {activeTab === 'trending' && <VideoIcon className="w-3.5 h-3.5 text-orange-500" />}
-                {activeTab === 'nudes' && <ImageIcon className="w-3.5 h-3.5 text-orange-500" />}
-                <span>
-                  {activeTab === 'topics' && `Trending Topics & Models (${filteredCreators.length})`}
-                  {activeTab === 'trending' && `Trending Videos (${filteredTrending.length})`}
-                  {activeTab === 'nudes' && `Nudes & Images (${filteredNudes.length})`}
-                </span>
+                <VideoIcon className="w-3.5 h-3.5 text-orange-500" />
+                <span>Trending Videos</span>
               </h2>
 
               {searchQuery && (
@@ -732,79 +549,25 @@ export default function HomeClient({
               )}
             </div>
 
-            {/* TAB 1: TOPICS GRID */}
-            {activeTab === 'topics' && (
-              <>
-                {paginatedCreators.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {paginatedCreators.map((creator) => (
-                      <TopicCard
-                        key={creator.name}
-                        creator={creator}
-                        onDirectPlay={handleDirectPlay}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-16 border border-stone-850 rounded-2xl bg-white/[0.02] text-center space-y-3">
-                    <Compass className="w-10 h-10 text-stone-600 mx-auto" />
-                    <div>
-                      <h4 className="font-bold text-stone-200 text-sm">No topics found</h4>
-                      <p className="text-xs text-stone-500 mt-1">Try another keyword or clear search filter.</p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* TAB 2: TRENDING VIDEOS GRID */}
-            {activeTab === 'trending' && (
-              <>
-                {paginatedTrending.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {paginatedTrending.map((vid) => (
-                      <MediaCard
-                        key={vid.id}
-                        media={vid}
-                        onPlay={handleDirectPlay}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-16 border border-stone-850 rounded-2xl bg-white/[0.02] text-center space-y-3">
-                    <VideoIcon className="w-10 h-10 text-stone-600 mx-auto" />
-                    <div>
-                      <h4 className="font-bold text-stone-200 text-sm">No videos found</h4>
-                      <p className="text-xs text-stone-500 mt-1">Try another keyword or clear search filter.</p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* TAB 3: NUDES / IMAGES GRID */}
-            {activeTab === 'nudes' && (
-              <>
-                {paginatedNudes.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {paginatedNudes.map((img) => (
-                      <MediaCard
-                        key={img.id}
-                        media={img}
-                        onPlay={handleDirectPlay}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-16 border border-stone-850 rounded-2xl bg-white/[0.02] text-center space-y-3">
-                    <ImageIcon className="w-10 h-10 text-stone-600 mx-auto" />
-                    <div>
-                      <h4 className="font-bold text-stone-200 text-sm">No image leaks found</h4>
-                      <p className="text-xs text-stone-500 mt-1">Try another keyword or clear search filter.</p>
-                    </div>
-                  </div>
-                )}
-              </>
+            {/* Trending Videos 2-Column Admin Grid */}
+            {paginatedVideos.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {paginatedVideos.map((vid) => (
+                  <MediaCard
+                    key={vid.id}
+                    media={vid}
+                    onPlay={handleDirectPlay}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="p-16 border border-stone-850 rounded-2xl bg-white/[0.02] text-center space-y-3">
+                <VideoIcon className="w-10 h-10 text-stone-600 mx-auto" />
+                <div>
+                  <h4 className="font-bold text-stone-200 text-sm">No videos found</h4>
+                  <p className="text-xs text-stone-500 mt-1">Try another keyword or clear search filter.</p>
+                </div>
+              </div>
             )}
 
             {/* Pagination Controls */}
@@ -931,15 +694,14 @@ export default function HomeClient({
                   <span>You May Also Like</span>
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {creators
-                    .filter((c) => c.name !== activeVideo.creator)
-                    .sort(() => Math.random() - 0.5)
-                    .slice(0, 6)
-                    .map((creator) => (
-                      <TopicCard
-                        key={creator.name}
-                        creator={creator}
-                        onDirectPlay={handleDirectPlay}
+                  {videos
+                    .filter((v) => v.id !== activeVideo.id)
+                    .slice(0, 4)
+                    .map((vid) => (
+                      <MediaCard
+                        key={vid.id}
+                        media={vid}
+                        onPlay={handleDirectPlay}
                       />
                     ))}
                 </div>
