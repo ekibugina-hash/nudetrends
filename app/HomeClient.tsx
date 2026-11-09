@@ -239,7 +239,11 @@ export default function HomeClient({
   const [notification, setNotification] = useState<string | null>(null);
 
   // Ads
-  const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
+  const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>({
+    enabled: true,
+    imageUrl: '/images/sponsor-banner.jpg',
+    linkUrl: 'https://ugandasexybabes.afrozex.com',
+  });
   const [popupAd, setPopupAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
   const [showPopupModal, setShowPopupModal] = useState(false);
 
@@ -510,19 +514,19 @@ export default function HomeClient({
 
         {/* Sponsor Banner Ad */}
         {bannerAd?.enabled && bannerAd?.imageUrl && (
-          <div className="w-full bg-[#111111] border border-orange-500/25 p-1 rounded-xl overflow-hidden group shadow-lg">
+          <div className="w-full bg-[#111111] border border-orange-500/30 p-1 rounded-2xl overflow-hidden group shadow-xl">
             <a
-              href={bannerAd.linkUrl || '#'}
+              href={bannerAd.linkUrl || 'https://ugandasexybabes.afrozex.com'}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full h-20 sm:h-24 relative block"
+              className="w-full h-32 sm:h-44 md:h-56 lg:h-64 relative block overflow-hidden rounded-xl bg-black"
             >
               <img
                 src={bannerAd.imageUrl}
-                alt="Sponsor"
-                className="w-full h-full object-cover rounded-lg group-hover:scale-[1.005] transition-transform duration-300"
+                alt="Hex Escorts UG - Ugandan Sexy Babes"
+                className="w-full h-full object-cover sm:object-contain md:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
               />
-              <span className="absolute bottom-2 right-2 bg-stone-950/85 backdrop-blur-sm text-[8px] font-mono font-black text-orange-400 px-2 py-0.5 rounded border border-orange-500/20 uppercase">
+              <span className="absolute bottom-2.5 right-2.5 bg-stone-950/85 backdrop-blur-sm text-[8px] font-mono font-black text-orange-400 px-2 py-0.5 rounded border border-orange-500/30 uppercase tracking-widest shadow-md">
                 SPONSOR AD
               </span>
             </a>

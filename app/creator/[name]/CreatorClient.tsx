@@ -154,7 +154,11 @@ export default function CreatorClient({ videos, creatorName, bio }: { videos: Vi
 
   // Storage and configuration states loaded from Admin Panel
   const [interestingTitlesMap, setInterestingTitlesMap] = useState<Record<string, string[]>>({});
-  const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
+  const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>({
+    enabled: true,
+    imageUrl: '/images/sponsor-banner.jpg',
+    linkUrl: 'https://ugandasexybabes.afrozex.com',
+  });
 
   useEffect(() => {
     setIsClient(true);

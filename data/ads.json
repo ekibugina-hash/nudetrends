@@ -1,1 +1,12 @@
-{} 
+{
+  "banner": {
+    "enabled": true,
+    "imageUrl": "/images/sponsor-banner.jpg",
+    "linkUrl": "https://ugandasexybabes.afrozex.com"
+  },
+  "popup": {
+    "enabled": false,
+    "imageUrl": "",
+    "linkUrl": ""
+  }
+}

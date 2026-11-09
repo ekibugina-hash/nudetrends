@@ -73,7 +73,11 @@ function RelatedCard({ vid }: { vid: Video }) {
 export default function WatchContent({ video, relatedVideos }: WatchContentProps) {
   const [notification, setNotification] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
+  const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>({
+    enabled: true,
+    imageUrl: '/images/sponsor-banner.jpg',
+    linkUrl: 'https://ugandasexybabes.afrozex.com',
+  });
 
   const isImage = video.type === 'image';
 
