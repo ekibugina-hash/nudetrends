@@ -6,11 +6,28 @@ export const revalidate = 60;
 export default async function Page({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
   const creatorName = decodeURIComponent(name);
-  const allVideos = await getMergedVideos();
-  const creators = await getCreators();
+  const [allVideos, creators] = await Promise.all([
+    getMergedVideos(),
+    getCreators()
+  ]);
   
-  const creatorVideos = allVideos.filter(v => v.creator === creatorName);
-  const creatorObj = creators.find(c => c.name === creatorName);
+  const creatorVideos = allVideos.filter(
+    v => (v.creator && v.creator.toLowerCase() === creatorName.toLowerCase()) ||
+         (v.title && v.title.toLowerCase() === creatorName.toLowerCase())
+  );
+  const creatorObj = creators.find(
+    c => c.name.toLowerCase() === creatorName.toLowerCase()
+  );
   
-  return <CreatorClient videos={creatorVideos} creatorName={creatorName} bio={creatorObj?.bio} />;
+  const finalVideos = creatorVideos.length > 0
+    ? creatorVideos
+    : (creatorObj?.firstVideo ? [creatorObj.firstVideo] : []);
+  
+  return (
+    <CreatorClient
+      videos={finalVideos}
+      creatorName={creatorObj?.name || creatorName}
+      bio={creatorObj?.bio || finalVideos[0]?.desc}
+    />
+  );
 }
