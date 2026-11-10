@@ -34,7 +34,7 @@ function FastTopicThumb({
   mediaCount?: number;
 }) {
   return (
-    <div className="w-28 sm:w-36 md:w-40 h-24 sm:h-24 md:h-28 rounded-lg bg-stone-950 border border-stone-900 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+    <div className="w-32 xs:w-36 sm:w-44 md:w-52 h-28 xs:h-32 sm:h-36 md:h-40 rounded-xl bg-stone-950 border border-stone-850 overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-inner">
       {thumbnailUrl ? (
         <img
           src={thumbnailUrl}
@@ -53,17 +53,17 @@ function FastTopicThumb({
         />
       ) : (
         <div
-          className="w-full h-full flex flex-col items-center justify-center p-2 text-center"
+          className="w-full h-full flex flex-col items-center justify-center p-3 text-center"
           style={{ backgroundImage: gradient }}
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/60 border border-white/10 flex items-center justify-center mb-1">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/60 border border-white/10 flex items-center justify-center mb-1.5 shadow-sm">
             {isImage ? (
-              <ImageIcon className="w-3.5 h-3.5 text-orange-400" />
+              <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
             ) : (
-              <VideoIcon className="w-3.5 h-3.5 text-orange-400" />
+              <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
             )}
           </div>
-          <span className="font-extrabold text-[10px] sm:text-xs font-mono text-stone-300 truncate max-w-full px-1">
+          <span className="font-extrabold text-xs sm:text-sm font-mono text-stone-200 truncate max-w-full px-1">
             {initials || 'NT'}
           </span>
         </div>
@@ -71,10 +71,10 @@ function FastTopicThumb({
 
       {/* Format / Duration badge */}
       <span
-        className={`absolute bottom-1 right-1 text-[7px] sm:text-[8px] font-mono px-1 sm:px-1.5 py-0.5 rounded font-bold z-20 ${
+        className={`absolute bottom-1.5 right-1.5 text-[8px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded font-bold z-20 shadow-md ${
           isImage
-            ? 'bg-orange-600 text-stone-950 uppercase'
-            : 'bg-stone-950/85 text-stone-300 border border-white/5'
+            ? 'bg-orange-500 text-stone-950 uppercase font-black'
+            : 'bg-stone-950/90 text-stone-300 border border-white/10'
         }`}
       >
         {isImage ? 'PHOTO' : duration || 'VIDEO'}
@@ -82,15 +82,15 @@ function FastTopicThumb({
 
       {/* Media count badge */}
       {mediaCount && mediaCount > 1 ? (
-        <span className="absolute top-1 left-1 bg-stone-950/85 border border-white/10 text-[7px] sm:text-[8px] font-mono font-bold px-1 sm:px-1.5 py-0.5 rounded text-orange-400 z-20">
+        <span className="absolute top-1.5 left-1.5 bg-stone-950/90 border border-white/10 text-[8px] sm:text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-orange-400 z-20 shadow-md">
           {mediaCount} media
         </span>
       ) : null}
 
       {/* Play hover button */}
       <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange-500 text-stone-950 flex items-center justify-center shadow-lg">
-          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-500 text-stone-950 flex items-center justify-center shadow-xl">
+          <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
         </div>
       </div>
     </div>
@@ -113,7 +113,7 @@ function TopicTrendCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.07] p-2.5 sm:p-3.5 rounded-xl flex flex-row gap-2.5 sm:gap-3.5 hover:border-orange-500/30 hover:bg-white/[0.05] transition-all shadow-sm group cursor-pointer"
+      className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] p-3.5 sm:p-4 md:p-5 rounded-2xl flex flex-row gap-3 sm:gap-4 md:gap-5 hover:border-orange-500/40 hover:bg-white/[0.06] transition-all shadow-md group cursor-pointer"
     >
       {/* Left Thumbnail (clear photo/thumbnail, NO heavy video streams) */}
       <FastTopicThumb
@@ -127,48 +127,48 @@ function TopicTrendCard({
       />
 
       {/* Right Details (Always to the right on both mobile and desktop) */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5 space-y-1">
+      <div className="flex-1 min-w-0 flex flex-col justify-between py-1 space-y-2">
         <div>
           <div className="flex justify-between items-start gap-1">
             <h3
-              className="font-bold text-stone-200 text-xs sm:text-sm line-clamp-2 leading-snug group-hover:text-orange-400 transition-colors"
+              className="font-bold text-stone-100 text-sm sm:text-base md:text-lg line-clamp-2 leading-snug group-hover:text-orange-400 transition-colors"
               title={item.name}
             >
               {item.name}
             </h3>
           </div>
 
-          <p className="text-[9px] sm:text-[10px] text-stone-500 font-mono mt-0.5 truncate">
-            Topic: {item.name} {item.firstVideo?.views ? `• ${item.firstVideo.views}` : ''}
+          <p className="text-[10px] sm:text-xs text-stone-400 font-mono mt-1 truncate">
+            Topic: <span className="text-stone-300 font-semibold">{item.name}</span> {item.firstVideo?.views ? `• ${item.firstVideo.views}` : ''}
           </p>
 
           {(item.bio || item.firstVideo?.desc) && (
-            <p className="text-[10px] sm:text-[11px] text-stone-400 line-clamp-2 mt-1 leading-relaxed hidden xs:block">
+            <p className="text-xs sm:text-sm text-stone-400 line-clamp-2 mt-1.5 leading-relaxed hidden xs:block">
               {item.bio || item.firstVideo?.desc}
             </p>
           )}
         </div>
 
         {/* Bottom row: tags and action button */}
-        <div className="pt-1 border-t border-stone-900/60 flex items-center justify-between gap-1">
-          <div className="flex flex-wrap gap-1 flex-1 overflow-hidden">
+        <div className="pt-2 border-t border-stone-850 flex items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-1.5 flex-1 overflow-hidden">
             {interestingTitles.length > 0 ? (
               interestingTitles.slice(0, 2).map((t, idx) => (
                 <span
                   key={idx}
-                  className="bg-stone-900 border border-stone-900/50 px-1.5 py-0.5 rounded-full text-[8px] text-stone-300 truncate max-w-[100px] sm:max-w-[140px]"
+                  className="bg-stone-900 border border-stone-800 px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] text-stone-300 truncate max-w-[120px] sm:max-w-[160px]"
                 >
                   {t}
                 </span>
               ))
             ) : (
-              <span className="text-[8px] sm:text-[9px] text-stone-600 font-mono">
+              <span className="text-[9px] sm:text-[10px] text-stone-500 font-mono">
                 {item.videoCount && item.videoCount > 1 ? `${item.videoCount} Items` : 'Fresh Drop'}
               </span>
             )}
           </div>
 
-          <span className="text-[9px] sm:text-[10px] font-mono font-bold text-orange-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 flex-shrink-0">
+          <span className="text-xs sm:text-sm font-mono font-bold text-orange-400 group-hover:translate-x-1 transition-transform flex items-center gap-1 flex-shrink-0">
             View Topic →
           </span>
         </div>
@@ -485,7 +485,7 @@ export default function HomeClient({
 
           {/* Topics / Trends Grid (Mobile: thumbnail left, info right; Desktop: 2-column) */}
           {paginatedItems.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
               {paginatedItems.map((item) => (
                 <TopicTrendCard
                   key={item.name}
