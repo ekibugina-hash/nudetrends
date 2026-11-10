@@ -192,7 +192,7 @@ export default function CreatorClient({
     const shareUrl = window.location.href;
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(shareUrl).then(() => {
-        triggerNotification('Copied topic link to clipboard!');
+        triggerNotification('Copied trend link to clipboard!');
       }).catch(() => {
         triggerNotification('Could not copy link.');
       });
@@ -203,7 +203,7 @@ export default function CreatorClient({
       el.select();
       document.execCommand('copy');
       document.body.removeChild(el);
-      triggerNotification('Copied topic link to clipboard!');
+      triggerNotification('Copied trend link to clipboard!');
     }
   };
 
@@ -327,7 +327,7 @@ export default function CreatorClient({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-[10px] font-mono font-extrabold text-orange-500 uppercase tracking-widest">
-                Topic &amp; Trend Details
+                Trend Details
               </span>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-0.5">
                 {creatorName}
@@ -396,7 +396,7 @@ export default function CreatorClient({
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-extrabold text-orange-400 uppercase tracking-widest flex items-center gap-2">
               <Compass className="w-3.5 h-3.5 text-orange-500" />
-              <span>All Media in this Topic ({filteredVideos.length})</span>
+              <span>All Media in this Trend ({filteredVideos.length})</span>
             </h3>
 
             {searchQuery && (

@@ -503,7 +503,7 @@ export default function AdminPage() {
     let finalThumbnailUrl = '';
     if (creatorThumbnailSource === 'file' && creatorThumbnailFile) {
       setCreatorThumbnailUploading(true);
-      triggerNotification('Uploading custom topic thumbnail to R2...');
+      triggerNotification('Uploading custom trend thumbnail to R2...');
       try {
         const res = await fetch('/api/get-presigned-url', {
           method: 'POST',
@@ -549,7 +549,7 @@ export default function AdminPage() {
           bio: creatorBio,
           ...(creatorThumbnailSource !== 'none' ? { thumbnailUrl: finalThumbnailUrl } : {})
         } : c));
-        triggerNotification('Topic settings updated successfully!');
+        triggerNotification('Trend settings updated successfully!');
         setSelectedCreatorName('');
         setCreatorThumbnailSource('none');
         setCreatorThumbnailFile(null);
@@ -774,7 +774,7 @@ export default function AdminPage() {
                   activeTab === 'topics' ? 'bg-orange-600 text-stone-950' : 'bg-stone-900 text-stone-400 hover:text-white'
                 }`}
               >
-                Topics Control
+                Trends Control
               </button>
               <button
                 onClick={() => setActiveTab('ads')}
@@ -2023,14 +2023,14 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: TOPICS CONTROL */}
+        {/* TAB 4: Trends Control */}
         {activeTab === 'topics' && (
           <div className="space-y-6 max-w-4xl animate-fadeIn">
-            <h2 className="text-xl font-black text-stone-200">Topics / Models Management</h2>
-            <p className="text-sm text-stone-400">Manage the thumbnails for the topics displayed on the home page.</p>
+            <h2 className="text-xl font-black text-stone-200">Trends / Models Management</h2>
+            <p className="text-sm text-stone-400">Manage the thumbnails for the trends displayed on the home page.</p>
 
             <div className="bg-stone-900/40 border border-stone-850 rounded-2xl p-6">
-              <label className="block text-xs font-mono font-bold text-stone-500 uppercase tracking-wider mb-2">Select a Topic to Edit Thumbnail</label>
+              <label className="block text-xs font-mono font-bold text-stone-500 uppercase tracking-wider mb-2">Select a Trend to Edit Thumbnail</label>
               <select 
                 value={selectedCreatorName}
                 onChange={(e) => {
@@ -2042,7 +2042,7 @@ export default function AdminPage() {
                 }}
                 className="w-full bg-stone-950 border border-stone-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-orange-500 text-stone-200 mb-6"
               >
-                <option value="">-- Select a Topic --</option>
+                <option value="">-- Select a Trend --</option>
                 {creators.map(c => (
                   <option key={c.name} value={c.name}>{c.name}</option>
                 ))}
@@ -2053,10 +2053,10 @@ export default function AdminPage() {
                   <h3 className="font-bold text-stone-200">Settings for {selectedCreatorName}</h3>
                   
                   <div>
-                    <label className="block text-[10px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-1">Topic Bio / Description</label>
+                    <label className="block text-[10px] font-mono font-bold text-stone-500 uppercase tracking-wider mb-1">Trend Bio / Description</label>
                     <textarea 
                       rows={3}
-                      placeholder="Write a short bio or description for this topic page..."
+                      placeholder="Write a short bio or description for this trend page..."
                       value={creatorBio}
                       onChange={(e) => setCreatorBio(e.target.value)}
                       className="w-full bg-stone-950 border border-stone-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-orange-500 text-stone-200"
@@ -2105,7 +2105,7 @@ export default function AdminPage() {
                       ) : (
                         <CheckCircle2 className="w-4 h-4" />
                       )}
-                      <span>Save Topic Settings</span>
+                      <span>Save Trend Settings</span>
                     </button>
                   </div>
                   </div>

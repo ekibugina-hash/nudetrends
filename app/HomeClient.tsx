@@ -139,7 +139,7 @@ function TopicTrendCard({
           </div>
 
           <p className="text-[10px] sm:text-xs text-stone-400 font-mono mt-1 truncate">
-            Topic: <span className="text-stone-300 font-semibold">{item.name}</span> {item.firstVideo?.views ? `• ${item.firstVideo.views}` : ''}
+            Trend: <span className="text-stone-300 font-semibold">{item.name}</span> {item.firstVideo?.views ? `• ${item.firstVideo.views}` : ''}
           </p>
 
           {(item.bio || item.firstVideo?.desc) && (
@@ -169,7 +169,7 @@ function TopicTrendCard({
           </div>
 
           <span className="text-xs sm:text-sm font-mono font-bold text-orange-400 group-hover:translate-x-1 transition-transform flex items-center gap-1 flex-shrink-0">
-            View Topic →
+            View Trend →
           </span>
         </div>
       </div>
@@ -388,7 +388,7 @@ export default function HomeClient({
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search topics, models, or tags..."
+                placeholder="Search trends, models, or tags..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
@@ -428,7 +428,7 @@ export default function HomeClient({
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Search topics, models, or tags..."
+              placeholder="Search trends, models, or tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-stone-950 border border-stone-800 rounded-lg py-2 pl-3 pr-3 text-xs text-stone-200 focus:outline-none focus:border-orange-500 placeholder:text-stone-500"
@@ -498,7 +498,7 @@ export default function HomeClient({
             <div className="p-16 border border-stone-850 rounded-2xl bg-white/[0.02] text-center space-y-3">
               <Compass className="w-10 h-10 text-stone-600 mx-auto" />
               <div>
-                <h4 className="font-bold text-stone-200 text-sm">No topics found</h4>
+                <h4 className="font-bold text-stone-200 text-sm">No trends found</h4>
                 <p className="text-xs text-stone-500 mt-1">Try another keyword or clear search filter.</p>
               </div>
             </div>
