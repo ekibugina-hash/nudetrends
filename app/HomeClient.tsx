@@ -206,15 +206,10 @@ export default function HomeClient({
   const [popupAd, setPopupAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
   const [showPopupModal, setShowPopupModal] = useState(false);
 
-  // Randomly shuffle topics/trends on every refresh/mount
+  // Keep trends arranged strictly by latest upload order (no shuffling)
   useEffect(() => {
     if (initialCreators && initialCreators.length > 0) {
-      const shuffled = [...initialCreators];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      setItems(shuffled);
+      setItems(initialCreators);
     }
   }, [initialCreators]);
 

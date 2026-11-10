@@ -155,6 +155,28 @@ function formatViews(size: number): string {
  * Scans Cloudflare R2 bucket and merges R2 files with local JSON database records,
  * returning a sorted list of active videos.
  */
+/**
+ * Helper to extract upload timestamp from ID or R2 key.
+ */
+function getMediaTimestamp(item: Video): number {
+  if (!item?.id) return 0;
+  if (item.id.startsWith('custom-')) {
+    const ts = parseInt(item.id.split('-')[1], 10);
+    if (!isNaN(ts)) return ts;
+  }
+  try {
+    const decodedId = decodeURIComponent(item.id);
+    const idMatch = decodedId.match(/(videos|nudes|images)\/(\d+)-/);
+    if (idMatch && idMatch[2]) {
+      const ts = parseInt(idMatch[2], 10);
+      if (!isNaN(ts)) return ts;
+    }
+  } catch {
+    return 0;
+  }
+  return 0;
+}
+
 async function getMergedVideosUncached(): Promise<Video[]> {
   // 1. Read JSON db videos
   const dbVideos = await readDb('videos.json');
@@ -240,28 +262,7 @@ async function getMergedVideosUncached(): Promise<Video[]> {
     }
   }
 
-  // 3. Helper to extract upload timestamp from ID or R2 key
-  const getMediaTimestamp = (item: Video): number => {
-    if (!item?.id) return 0;
-    if (item.id.startsWith('custom-')) {
-      const ts = parseInt(item.id.split('-')[1], 10);
-      if (!isNaN(ts)) return ts;
-    }
-    try {
-      // Decode the ID first so the regex works on the actual path
-      const decodedId = decodeURIComponent(item.id);
-      const idMatch = decodedId.match(/(videos|nudes|images)\/(\d+)-/);
-      if (idMatch && idMatch[2]) {
-        const ts = parseInt(idMatch[2], 10);
-        if (!isNaN(ts)) return ts;
-      }
-    } catch {
-      return 0;
-    }
-    return 0;
-  };
-
-  // 4. Merge lists
+  // 3. Merge lists
   const mergedVideos: Video[] = [];
 
   activeDbVideos.forEach((dbVid: any) => {
@@ -374,10 +375,20 @@ async function getCreatorsUncached(): Promise<Creator[]> {
     }
   });
 
-  return Array.from(creatorsMap.values()).map(({ videos, ...creator }) => ({
-    ...creator,
-    videoCount: videos.length,
-  })).sort((a, b) => a.name.localeCompare(b.name));
+  return Array.from(creatorsMap.values())
+    .map(({ videos, ...creator }) => {
+      const latestUpload = videos.reduce((max: number, vid: any) => {
+        const t = getMediaTimestamp(vid) || vid.uploadedAt || 0;
+        return t > max ? t : max;
+      }, 0);
+      return {
+        ...creator,
+        videoCount: videos.length,
+        latestUpload,
+      };
+    })
+    .sort((a, b) => b.latestUpload - a.latestUpload)
+    .map(({ latestUpload, ...creator }) => creator);
 }
 
 export const getCreators = unstable_cache(
