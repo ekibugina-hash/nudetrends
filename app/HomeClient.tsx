@@ -225,7 +225,7 @@ function HeroSliderWidget({
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
 
         {/* Content Overlay */}
-        <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 flex flex-col justify-end pb-6 sm:pb-10 relative z-10 space-y-2.5 max-w-2xl sm:max-w-3xl">
+        <div className="absolute inset-0 z-10 flex flex-col justify-end pb-6 sm:pb-10 px-4 sm:px-6 space-y-2.5 max-w-2xl sm:max-w-3xl">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1 bg-orange-600 text-stone-950 text-[9px] sm:text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
               <Flame className="w-3 h-3" />
