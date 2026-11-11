@@ -208,7 +208,7 @@ function HeroSliderWidget({
   return (
     <div className="relative w-full overflow-hidden bg-stone-950 border-b border-stone-850 shadow-2xl group">
       {/* Background Poster spanning from extreme left to extreme right */}
-      <div className="relative w-full h-[220px] xs:h-[260px] sm:h-[340px] md:h-[400px] lg:h-[450px]">
+      <div className="relative w-full h-[300px] xs:h-[340px] sm:h-[420px] md:h-[500px] lg:h-[560px]">
         {bgImage ? (
           <img
             src={bgImage}
@@ -265,37 +265,6 @@ function HeroSliderWidget({
             </span>
           </div>
         </div>
-
-        {/* Carousel controls on extreme right */}
-        {featuredItems.length > 1 && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
-            <div className="absolute bottom-6 sm:bottom-10 right-4 sm:right-6 z-20 flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentIdx((prev) => (prev - 1 + featuredItems.length) % featuredItems.length)}
-                className="p-2 rounded-xl bg-black/60 hover:bg-black/90 border border-white/10 text-white transition cursor-pointer backdrop-blur-sm"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-1.5 px-1.5">
-                {featuredItems.map((_, dotIdx) => (
-                  <span
-                    key={dotIdx}
-                    onClick={() => setCurrentIdx(dotIdx)}
-                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                      dotIdx === currentIdx ? 'w-6 bg-orange-500 shadow-sm shadow-orange-500/50' : 'w-1.5 bg-white/40'
-                    }`}
-                  />
-                ))}
-              </div>
-              <button
-                onClick={() => setCurrentIdx((prev) => (prev + 1) % featuredItems.length)}
-                className="p-2 rounded-xl bg-black/60 hover:bg-black/90 border border-white/10 text-white transition cursor-pointer backdrop-blur-sm"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

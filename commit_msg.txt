@@ -1,1 +1,1 @@
-fix: remove mid-page tabs, keep fixed bottom nav, clearer trend page backgrounds
+feat: remove carousel controls from hero slider, increase slider height
