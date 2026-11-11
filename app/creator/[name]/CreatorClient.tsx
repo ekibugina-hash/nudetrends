@@ -315,7 +315,21 @@ export default function CreatorClient({
   ];
 
   return (
-    <div className="min-h-screen bg-[#090909] text-stone-200">
+    <div className="min-h-screen bg-[#090909] text-stone-200 relative overflow-hidden">
+      {/* Top Background Photo Cover (From top of the page down to ~480px, smooth fade into #090909) */}
+      {thumbnailUrl && (
+        <div className="absolute top-0 left-0 right-0 h-[420px] sm:h-[500px] pointer-events-none z-0 overflow-hidden select-none">
+          <img
+            src={thumbnailUrl}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover object-top opacity-35 sm:opacity-40 filter blur-[1px] scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#090909]/70 via-transparent to-[#090909]" />
+          <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#090909] via-[#090909]/90 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#090909]/80 via-transparent to-[#090909]/80" />
+        </div>
+      )}
       {/* Notification Toast */}
       {notification && (
         <div className="fixed bottom-6 right-6 z-[3000] bg-orange-600 border border-orange-500 text-stone-950 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-slideUp font-bold text-xs">
@@ -325,7 +339,7 @@ export default function CreatorClient({
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-[1000] bg-[#0c0c0c]/95 backdrop-blur-md border-b border-stone-800">
+      <header className="sticky top-0 z-[1000] bg-[#0c0c0c]/85 backdrop-blur-md border-b border-stone-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
@@ -383,7 +397,7 @@ export default function CreatorClient({
       </header>
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Semantic Breadcrumbs for SEO & UX */}
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[11px] font-mono text-stone-400 flex-wrap">
           <Link href="/" className="hover:text-orange-400 transition-colors">Home</Link>
@@ -393,43 +407,10 @@ export default function CreatorClient({
           <span className="text-stone-200 font-bold">{creatorName}</span>
         </nav>
 
-        {/* Sponsor Banner Ad: Reduced to half desktop size */}
-        {bannerAd?.enabled && bannerAd?.imageUrl && (
-          <div className="w-full max-w-md sm:max-w-lg mx-auto">
-            <div className="relative bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/40 shadow-xl overflow-hidden group hover:border-pink-400/70 transition-all duration-300">
-              <a
-                href={bannerAd.linkUrl || 'https://www.hexescortsug.com'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative block w-full aspect-[16/9] rounded-xl overflow-hidden bg-black"
-              >
-                <img
-                  src={bannerAd.imageUrl}
-                  alt="Hex Escorts UG - www.hexescortsug.com"
-                  className="w-full h-full object-contain sm:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
-                />
-                <span className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[8px] font-mono font-black text-pink-400 px-1.5 py-0.5 rounded border border-pink-500/30 uppercase tracking-widest shadow-md">
-                  SPONSOR AD
-                </span>
-              </a>
-            </div>
-          </div>
-        )}
 
-        {/* ── Topic Hero & Info Section (Thumbnail Photo as Background) ─────── */}
-        <div className="relative rounded-3xl overflow-hidden border border-stone-800 shadow-2xl bg-stone-950">
-          {/* Thumbnail photo displayed as full background photo */}
-          {thumbnailUrl && (
-            <div className="absolute inset-0 z-0 overflow-hidden">
-              <img
-                src={thumbnailUrl}
-                alt={`${creatorName} background`}
-                className="w-full h-full object-cover object-center scale-105 opacity-40 blur-[1px]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#090909] via-[#090909]/80 to-[#090909]/60" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#090909] via-[#090909]/75 to-transparent" />
-            </div>
-          )}
+
+        {/* ── Topic Hero & Info Section (Frosted glass over top background photo) ─────── */}
+        <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-stone-950/70 backdrop-blur-md">
 
           {/* Subtle Ambient Glow */}
           <div className="absolute -top-24 -left-24 w-72 h-72 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -754,6 +735,28 @@ export default function CreatorClient({
               ))}
             </div>
           </section>
+        )}
+        {/* Sponsor Banner Ad: Placed at bottom of trend page */}
+        {bannerAd?.enabled && bannerAd?.imageUrl && (
+          <div className="w-full max-w-md sm:max-w-lg mx-auto pt-4">
+            <div className="relative bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/40 shadow-xl overflow-hidden group hover:border-pink-400/70 transition-all duration-300">
+              <a
+                href={bannerAd.linkUrl || 'https://www.hexescortsug.com'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative block w-full aspect-[16/9] rounded-xl overflow-hidden bg-black"
+              >
+                <img
+                  src={bannerAd.imageUrl}
+                  alt="Hex Escorts UG - www.hexescortsug.com"
+                  className="w-full h-full object-contain sm:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
+                />
+                <span className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[8px] font-mono font-black text-pink-400 px-1.5 py-0.5 rounded border border-pink-500/30 uppercase tracking-widest shadow-md">
+                  SPONSOR AD
+                </span>
+              </a>
+            </div>
+          </div>
         )}
       </main>
 
