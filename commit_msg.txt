@@ -1,1 +1,0 @@
-feat: smooth slideshow sliding transition for hero widget and compact ad banner
