@@ -1,1 +1,0 @@
-fix: hero slider trend title now visible - overlay was not absolute positioned
