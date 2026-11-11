@@ -214,7 +214,7 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
       {hasRealStream ? (
         <video
           ref={videoRef}
-          src={`${video.videoUrl}#t=20`}
+          src={video.videoUrl}
           poster={video.thumbnailUrl || undefined}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
