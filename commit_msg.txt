@@ -1,1 +1,0 @@
-feat: display trend title on hero slider and use thumbnail photo as hero background on trend page
