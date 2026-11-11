@@ -202,14 +202,30 @@ export default function WatchContent({ video, relatedVideos }: WatchContentProps
           {/* ── LEFT: Main content column ── */}
           <div className="flex-1 min-w-0 space-y-5">
 
-            {/* Back button */}
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-400 text-stone-950 text-xs font-black rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-[1.02] group"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-              Back to Home
-            </Link>
+            {/* Back button & Semantic Breadcrumbs */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-400 text-stone-950 text-xs font-black rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-[1.02] group w-fit"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                Back to Home
+              </Link>
+
+              <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[11px] font-mono text-stone-400 flex-wrap">
+                <Link href="/" className="hover:text-orange-400 transition-colors">Home</Link>
+                <span>/</span>
+                {video.creator ? (
+                  <>
+                    <Link href={`/creator/${encodeURIComponent(video.creator)}`} className="hover:text-orange-400 transition-colors truncate max-w-[160px]">
+                      {video.creator}
+                    </Link>
+                    <span>/</span>
+                  </>
+                ) : null}
+                <span className="text-stone-300 font-bold truncate max-w-[200px]">{video.title || 'Stream'}</span>
+              </nav>
+            </div>
 
             {/* Banner ad (top of watch page) */}
             {bannerAd && (

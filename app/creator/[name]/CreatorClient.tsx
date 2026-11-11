@@ -17,10 +17,13 @@ import {
   VideoOff,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Flame,
+  HelpCircle,
+  TrendingUp,
   Sparkles
 } from 'lucide-react';
-import { Video } from '../../types';
+import { Video, Creator } from '../../types';
 import VideoPlayer from '../../components/VideoPlayer';
 import CommentsSection from '../../components/CommentsSection';
 
@@ -169,11 +172,13 @@ export default function CreatorClient({
   creatorName,
   bio,
   thumbnailUrl,
+  relatedCreators = [],
 }: {
   videos: Video[];
   creatorName: string;
   bio?: string;
   thumbnailUrl?: string;
+  relatedCreators?: Creator[];
 }) {
   const router = useRouter();
   const [activeVideo, setActiveVideo] = useState<Video | null>(
@@ -182,6 +187,7 @@ export default function CreatorClient({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'video' | 'image'>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const ITEMS_PER_PAGE = 12;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
@@ -293,6 +299,21 @@ export default function CreatorClient({
   const videoItems = videos.filter((v) => v.type !== 'image');
   const imageItems = videos.filter((v) => v.type === 'image');
 
+  const faqs = [
+    {
+      q: `Where can I watch ${creatorName} leaked videos and photos?`,
+      a: `You can stream all exclusive leaked videos and photo trends of ${creatorName} directly on NudeTrends Uganda with high speed streaming and no lag.`,
+    },
+    {
+      q: `How many videos and photos are available for ${creatorName}?`,
+      a: `There are currently ${videoItems.length} videos and ${imageItems.length} photos available for ${creatorName} on NudeTrends Uganda.`,
+    },
+    {
+      q: `Is ${creatorName} content available on mobile devices?`,
+      a: `Yes, all content for ${creatorName} is fully optimized for mobile devices with lightweight, responsive thumbnail previews and instant playback.`,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#090909] text-stone-200">
       {/* Notification Toast */}
@@ -363,6 +384,15 @@ export default function CreatorClient({
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Semantic Breadcrumbs for SEO & UX */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[11px] font-mono text-stone-400 flex-wrap">
+          <Link href="/" className="hover:text-orange-400 transition-colors">Home</Link>
+          <span>/</span>
+          <Link href="/#trending-videos" className="hover:text-orange-400 transition-colors">Trends</Link>
+          <span>/</span>
+          <span className="text-stone-200 font-bold">{creatorName}</span>
+        </nav>
+
         {/* Sponsor Banner Ad: Reduced to half desktop size */}
         {bannerAd?.enabled && bannerAd?.imageUrl && (
           <div className="w-full max-w-md sm:max-w-lg mx-auto">
@@ -388,18 +418,16 @@ export default function CreatorClient({
 
         {/* ── Topic Hero & Info Section ────────────────────────────────────────── */}
         <div className="relative bg-gradient-to-b from-stone-900/40 via-stone-950 to-stone-950 border border-stone-800 rounded-3xl p-5 sm:p-7 shadow-2xl overflow-hidden">
-          {/* Subtle Ambient Glow */}
           <div className="absolute -top-24 -left-24 w-72 h-72 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative flex flex-col md:flex-row items-start md:items-center gap-5 sm:gap-6 justify-between">
             {/* Left: Avatar/Cover + Details */}
             <div className="flex items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
-              {/* Cover visual */}
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-stone-900 border-2 border-orange-500/40 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-lg shadow-orange-500/10">
                 {thumbnailUrl ? (
                   <img
                     src={thumbnailUrl}
-                    alt={creatorName}
+                    alt={`${creatorName} trend cover`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -445,10 +473,16 @@ export default function CreatorClient({
             </div>
           </div>
 
-          {bio && (
+          {bio ? (
             <div className="mt-5 pt-4 border-t border-stone-850/80">
               <p className="text-xs sm:text-sm text-stone-300 leading-relaxed bg-stone-950/80 p-4 rounded-xl border border-stone-850 whitespace-pre-wrap">
                 {bio}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-5 pt-4 border-t border-stone-850/80">
+              <p className="text-xs text-stone-400 leading-relaxed bg-stone-950/60 p-3.5 rounded-xl border border-stone-850">
+                Explore all verified leaks, viral videos, and exclusive photo content of <strong className="text-stone-200">{creatorName}</strong> on NudeTrends Uganda. Stream high-definition media directly from your browser.
               </p>
             </div>
           )}
@@ -463,7 +497,7 @@ export default function CreatorClient({
                 <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden flex items-center justify-center select-none">
                   <img
                     src={activeVideo.imageUrl || activeVideo.thumbnailUrl || '/images/v2.png'}
-                    alt={activeVideo.title}
+                    alt={activeVideo.title || `${creatorName} photo view`}
                     className="w-full h-full object-contain"
                   />
                   <div className="absolute top-4 right-4 bg-stone-950/85 backdrop-blur-md px-3 py-1.5 rounded-lg border border-orange-500/30 text-[9px] font-mono font-black text-orange-400 uppercase tracking-widest shadow-xl">
@@ -626,6 +660,85 @@ export default function CreatorClient({
             </div>
           )}
         </div>
+
+        {/* ── SEO FAQ Section (Google PAA Rich Snippets) ───────────────────────── */}
+        <section className="bg-stone-950 border border-stone-850 rounded-3xl p-5 sm:p-7 space-y-4">
+          <div className="flex items-center gap-2 text-xs font-extrabold text-orange-400 uppercase tracking-widest">
+            <HelpCircle className="w-4 h-4 text-orange-500" />
+            <span>Frequently Asked Questions about {creatorName}</span>
+          </div>
+
+          <div className="space-y-3">
+            {faqs.map((faq, index) => {
+              const isOpen = openFaq === index;
+              return (
+                <div
+                  key={index}
+                  className="border border-stone-850 rounded-2xl overflow-hidden bg-white/[0.01]"
+                >
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : index)}
+                    className="w-full p-4 text-left flex items-center justify-between gap-3 text-stone-200 hover:text-orange-400 transition cursor-pointer"
+                  >
+                    <span className="font-bold text-xs sm:text-sm">{faq.q}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-stone-500 transition-transform ${
+                        isOpen ? 'rotate-180 text-orange-400' : ''
+                      }`}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="px-4 pb-4 pt-1 text-xs text-stone-400 leading-relaxed border-t border-stone-850/60 animate-fadeIn">
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── Internal Linking: Related Viral Trends ───────────────────────────── */}
+        {relatedCreators.length > 0 && (
+          <section className="space-y-4 pt-6 border-t border-stone-850">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-stone-300 uppercase tracking-widest">
+              <TrendingUp className="w-4 h-4 text-orange-500" />
+              <span>More Viral Trends in Uganda</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {relatedCreators.map((trend) => (
+                <Link
+                  key={trend.name}
+                  href={`/creator/${encodeURIComponent(trend.name)}`}
+                  className="bg-white/[0.02] hover:bg-white/[0.05] border border-stone-850 hover:border-orange-500/40 rounded-2xl p-3 flex flex-col items-center text-center gap-2.5 transition group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-stone-900 border border-orange-500/30 overflow-hidden flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    {trend.thumbnailUrl ? (
+                      <img
+                        src={trend.thumbnailUrl}
+                        alt={trend.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="font-black font-mono text-xs text-orange-400">
+                        {trend.name.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 w-full">
+                    <p className="font-bold text-xs text-stone-200 truncate group-hover:text-orange-400 transition-colors">
+                      {trend.name}
+                    </p>
+                    <span className="text-[10px] font-mono text-stone-500">
+                      {trend.videoCount || 1} Media Files
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Footer */}

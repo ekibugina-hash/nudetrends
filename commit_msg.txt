@@ -1,0 +1,1 @@
+feat: S-tier SEO overhaul with BreadcrumbList, FAQPage, ISO 8601 durations, Googlebot max-preview, and internal linking

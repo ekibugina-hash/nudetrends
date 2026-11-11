@@ -2,8 +2,7 @@ import { getMergedVideos } from '../../lib/db';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import WatchContent from './WatchContent';
-
-const SITE_URL = process.env.APP_URL || 'https://nudetrends.afrozex.com';
+import { absoluteUrl, formatIsoDuration, generateBreadcrumbSchema, SITE_URL } from '../../lib/seo';
 
 export const revalidate = 60;
 
@@ -11,7 +10,7 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-// Generate fully dynamic SEO metadata per video — this is what gives each video its own Google footprint
+// Generate fully dynamic SEO metadata per video
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const decodedId = decodeURIComponent(id);
@@ -33,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `${video.desc.slice(0, 160)} — Watch on NudeTrends Uganda.`
     : `Watch ${video.title || 'this exclusive premium content'} on NudeTrends Uganda — Uganda's #1 source for trending nudes and leaked videos.`;
 
-  const imageUrl = video.imageUrl || video.thumbnailUrl || `${SITE_URL}/logo.png`;
+  const imageUrl = absoluteUrl(video.imageUrl || video.thumbnailUrl);
   const canonicalUrl = `${SITE_URL}/watch/${encodeURIComponent(id)}`;
   const videoType = video.type === 'video' ? 'video.other' : 'article';
 
@@ -68,6 +67,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     robots: {
       index: true,
       follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
   };
 }
@@ -86,27 +92,67 @@ export default async function WatchPage({ params }: Props) {
   // Pass full list for "related videos" on the client
   const related = videos.filter((v) => v.id !== video.id).slice(0, 8);
 
+  const isVideo = video.type === 'video';
+  const uploadDate = video.uploadedAt
+    ? new Date(video.uploadedAt).toISOString()
+    : new Date().toISOString();
+
+  const canonicalUrl = `${SITE_URL}/watch/${encodeURIComponent(id)}`;
+  const thumbUrl = absoluteUrl(video.thumbnailUrl || video.imageUrl);
+  const mediaUrl = absoluteUrl(video.videoUrl || video.imageUrl);
+
+  // 1. Breadcrumbs Schema
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: video.creator || 'Trends', url: video.creator ? `/creator/${encodeURIComponent(video.creator)}` : '/' },
+    { name: video.title || 'Stream', url: `/watch/${encodeURIComponent(id)}` },
+  ]);
+
+  // 2. VideoObject or ImageObject Schema
+  const mediaSchema = isVideo
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'VideoObject',
+        name: video.title || 'Exclusive Stream',
+        description: video.desc || `Watch ${video.title || 'exclusive content'} on NudeTrends Uganda.`,
+        thumbnailUrl: [thumbUrl],
+        uploadDate: uploadDate,
+        duration: formatIsoDuration(video.duration),
+        contentUrl: mediaUrl,
+        embedUrl: canonicalUrl,
+        interactionStatistic: {
+          '@type': 'InteractionCounter',
+          interactionType: { '@type': 'WatchAction' },
+          userInteractionCount: parseInt((video.views || '1200').replace(/[^0-9]/g, ''), 10) || 1200,
+        },
+        author: {
+          '@type': 'Person',
+          name: video.creator || 'NudeTrends Uganda',
+        },
+      }
+    : {
+        '@context': 'https://schema.org',
+        '@type': 'ImageObject',
+        name: video.title || 'Exclusive Photo Leak',
+        description: video.desc || `High quality photo leak on NudeTrends Uganda.`,
+        contentUrl: mediaUrl,
+        thumbnailUrl: thumbUrl,
+        datePublished: uploadDate,
+        author: {
+          '@type': 'Person',
+          name: video.creator || 'NudeTrends Uganda',
+        },
+      };
+
   return (
     <>
-      {/* Inject structured data (VideoObject schema) directly in the page for SEO */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': video.type === 'video' ? 'VideoObject' : 'ImageObject',
-            name: video.title || 'Untitled Content',
-            description: video.desc || `Premium exclusive content on NudeTrends Uganda.`,
-            thumbnailUrl: video.imageUrl || video.thumbnailUrl || `${SITE_URL}/logo.png`,
-            uploadDate: new Date().toISOString(),
-            contentUrl: video.videoUrl || video.imageUrl || '',
-            embedUrl: `${SITE_URL}/watch/${encodeURIComponent(id)}`,
-            author: {
-              '@type': 'Person',
-              name: video.creator || 'NudeTrends Uganda',
-            },
-          }),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(mediaSchema) }}
       />
       <WatchContent video={video} relatedVideos={related} />
     </>
