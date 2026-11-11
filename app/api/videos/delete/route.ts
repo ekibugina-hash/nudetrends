@@ -3,7 +3,7 @@ import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { Video } from '../../../types';
 import { readDb, writeDb, s3 } from '../../../lib/db';
 import { isAdminRequest } from '../../../lib/auth';
-import { revalidateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 
 async function readVideosFromFile(): Promise<any[]> {
   return await readDb('videos.json');
@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
         console.error('R2 deletion failed during delete API call:', err);
       }
     }
+
+    revalidatePath('/', 'layout');
 
     return NextResponse.json({
       success: true,

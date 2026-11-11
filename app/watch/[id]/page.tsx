@@ -8,13 +8,15 @@ const SITE_URL = process.env.APP_URL || 'https://nudetrends.afrozex.com';
 export const revalidate = 60;
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // Generate fully dynamic SEO metadata per video — this is what gives each video its own Google footprint
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const decodedId = decodeURIComponent(id);
   const videos = await getMergedVideos();
-  const video = videos.find((v) => v.id === decodeURIComponent(params.id));
+  const video = videos.find((v) => v.id === decodedId);
 
   if (!video) {
     return {
@@ -32,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : `Watch ${video.title || 'this exclusive premium content'} on NudeTrends Uganda — Uganda's #1 source for trending nudes and leaked videos.`;
 
   const imageUrl = video.imageUrl || video.thumbnailUrl || `${SITE_URL}/logo.png`;
-  const canonicalUrl = `${SITE_URL}/watch/${params.id}`;
+  const canonicalUrl = `${SITE_URL}/watch/${encodeURIComponent(id)}`;
   const videoType = video.type === 'video' ? 'video.other' : 'article';
 
   return {
@@ -71,8 +73,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function WatchPage({ params }: Props) {
+  const { id } = await params;
+  const decodedId = decodeURIComponent(id);
   const videos = await getMergedVideos();
-  const video = videos.find((v) => v.id === decodeURIComponent(params.id));
+  const video = videos.find((v) => v.id === decodedId);
 
   // Show 404 page if the video ID doesn't match any content
   if (!video) {
@@ -96,7 +100,7 @@ export default async function WatchPage({ params }: Props) {
             thumbnailUrl: video.imageUrl || video.thumbnailUrl || `${SITE_URL}/logo.png`,
             uploadDate: new Date().toISOString(),
             contentUrl: video.videoUrl || video.imageUrl || '',
-            embedUrl: `${SITE_URL}/watch/${params.id}`,
+            embedUrl: `${SITE_URL}/watch/${encodeURIComponent(id)}`,
             author: {
               '@type': 'Person',
               name: video.creator || 'NudeTrends Uganda',

@@ -15,7 +15,6 @@ import {
   Check,
 } from 'lucide-react';
 import { Video } from '../types';
-import CommentsSection from './CommentsSection';
 
 interface VideoPlayerProps {
   video: Video;
@@ -201,7 +200,6 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <>
     <div
       ref={containerRef}
       className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-stone-800 shadow-2xl group select-none"
@@ -440,9 +438,5 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
       </div>
 
     </div>
-
-    {/* ─── COMMENTS SECTION ─── */}
-    <CommentsSection videoId={video.id} />
-  </>
   );
 }
