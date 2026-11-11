@@ -1,1 +1,1 @@
-feat: remove carousel controls from hero slider, increase slider height
+feat: smooth slideshow sliding transition for hero widget and compact ad banner

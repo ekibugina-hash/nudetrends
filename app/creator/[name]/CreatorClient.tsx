@@ -736,7 +736,7 @@ export default function CreatorClient({
         )}
         {/* Sponsor Banner Ad: Placed at bottom of trend page */}
         {bannerAd?.enabled && bannerAd?.imageUrl && (
-          <div className="w-full max-w-md sm:max-w-lg mx-auto pt-4">
+          <div className="w-full max-w-xs sm:max-w-sm mx-auto pt-4">
             <div className="relative bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/40 shadow-xl overflow-hidden group hover:border-pink-400/70 transition-all duration-300">
               <a
                 href={bannerAd.linkUrl || 'https://www.hexescortsug.com'}
@@ -749,9 +749,7 @@ export default function CreatorClient({
                   alt="Hex Escorts UG - www.hexescortsug.com"
                   className="w-full h-full object-contain sm:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
                 />
-                <span className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[8px] font-mono font-black text-pink-400 px-1.5 py-0.5 rounded border border-pink-500/30 uppercase tracking-widest shadow-md">
-                  SPONSOR AD
-                </span>
+
               </a>
             </div>
           </div>

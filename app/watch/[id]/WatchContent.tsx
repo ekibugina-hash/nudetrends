@@ -229,12 +229,10 @@ export default function WatchContent({ video, relatedVideos }: WatchContentProps
 
             {/* Banner ad (top of watch page) */}
             {bannerAd && (
-              <div className="w-full max-w-2xl mx-auto bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/30 overflow-hidden group shadow-lg">
+              <div className="w-full max-w-xs sm:max-w-sm mx-auto bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/30 overflow-hidden group shadow-lg">
                 <a href={bannerAd.linkUrl || 'https://www.hexescortsug.com'} target="_blank" rel="noopener noreferrer" className="w-full aspect-[16/9] relative block">
                   <Image fill src={bannerAd.imageUrl} alt="Sponsor Banner Ad" sizes="100vw" className="object-cover rounded-lg group-hover:scale-[1.005] transition-transform duration-300" />
-                  <span className="absolute bottom-2 right-2 bg-stone-950/85 backdrop-blur-sm text-[8px] font-mono font-black text-orange-400 px-2 py-0.5 rounded border border-orange-500/20 uppercase">
-                    SPONSOR AD
-                  </span>
+
                 </a>
               </div>
             )}

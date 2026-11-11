@@ -183,7 +183,7 @@ function TopicTrendCard({
   );
 }
 
-// ─── Hero Breaking Leak Slider Widget (Seamless Edge-to-Edge) ─────────────────
+// ─── Hero Breaking Leak Slider Widget (Seamless Edge-to-Edge Slideshow) ───────
 function HeroSliderWidget({
   featuredItems,
   onSelect,
@@ -192,78 +192,116 @@ function HeroSliderWidget({
   onSelect: (name: string) => void;
 }) {
   const [currentIdx, setCurrentIdx] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const touchStartXRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (featuredItems.length <= 1) return;
+    if (featuredItems.length <= 1 || isPaused) return;
     const interval = setInterval(() => {
       setCurrentIdx((prev) => (prev + 1) % featuredItems.length);
-    }, 6000);
+    }, 5000);
     return () => clearInterval(interval);
-  }, [featuredItems.length]);
+  }, [featuredItems.length, isPaused]);
 
   if (!featuredItems || featuredItems.length === 0) return null;
-  const current = featuredItems[currentIdx];
-  const bgImage = current.firstVideo?.imageUrl || current.firstVideo?.thumbnailUrl || current.thumbnailUrl;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    setIsPaused(true);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return;
+    const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+    if (diff > 50) {
+      setCurrentIdx((prev) => (prev + 1) % featuredItems.length);
+    } else if (diff < -50) {
+      setCurrentIdx((prev) => (prev - 1 + featuredItems.length) % featuredItems.length);
+    }
+    touchStartXRef.current = null;
+    setIsPaused(false);
+  };
 
   return (
-    <div className="relative w-full overflow-hidden bg-stone-950 border-b border-stone-850 shadow-2xl group">
-      {/* Background Poster spanning from extreme left to extreme right */}
-      <div className="relative w-full h-[300px] xs:h-[340px] sm:h-[420px] md:h-[500px] lg:h-[560px]">
-        {bgImage ? (
-          <img
-            src={bgImage}
-            alt={current.name}
-            className="w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-700"
-          />
-        ) : (
-          <div
-            className="w-full h-full"
-            style={{ backgroundImage: current.gradient }}
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#090909] via-black/60 to-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
+    <div
+      className="relative w-full overflow-hidden bg-stone-950 border-b border-stone-850 shadow-2xl group select-none"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Sliding Track (Edge-to-Edge) */}
+      <div className="relative w-full h-[300px] xs:h-[340px] sm:h-[420px] md:h-[500px] lg:h-[560px] overflow-hidden">
+        <div
+          className="flex h-full w-full transition-transform duration-700 ease-in-out"
+          style={{ transform: `translateX(-${currentIdx * 100}%)` }}
+        >
+          {featuredItems.map((item, idx) => {
+            const bgImage = item.firstVideo?.imageUrl || item.firstVideo?.thumbnailUrl || item.thumbnailUrl;
+            return (
+              <div
+                key={item.name || idx}
+                className="relative w-full h-full flex-shrink-0 overflow-hidden"
+              >
+                {bgImage ? (
+                  <img
+                    src={bgImage}
+                    alt={item.name}
+                    className="w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-700"
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full"
+                    style={{ backgroundImage: item.gradient }}
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#090909] via-black/60 to-black/30" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
 
-        {/* Content Overlay */}
-        <div className="absolute inset-0 z-10 flex flex-col justify-end pb-6 sm:pb-10 px-4 sm:px-6 space-y-2.5 max-w-2xl sm:max-w-3xl">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 bg-orange-600 text-stone-950 text-[9px] sm:text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
-              <Flame className="w-3 h-3" />
-              Breaking Leak
-            </span>
-            <span className="bg-black/70 backdrop-blur-md border border-white/10 text-stone-300 text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-md">
-              {current.videoCount || 1} Media Files
-            </span>
-          </div>
+                {/* Content Overlay */}
+                <div className="absolute inset-0 z-10 flex flex-col justify-end pb-6 sm:pb-10 px-4 sm:px-6 space-y-2.5 max-w-2xl sm:max-w-3xl">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 bg-orange-600 text-stone-950 text-[9px] sm:text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
+                      <Flame className="w-3 h-3" />
+                      Breaking Leak
+                    </span>
+                    <span className="bg-black/70 backdrop-blur-md border border-white/10 text-stone-300 text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-md">
+                      {item.videoCount || 1} Media Files
+                    </span>
+                  </div>
 
-          <h3 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight line-clamp-2 drop-shadow-md">
-            {current.name}
-          </h3>
+                  <h3 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight line-clamp-2 drop-shadow-md">
+                    {item.name}
+                  </h3>
 
-          {current.firstVideo?.title && current.firstVideo.title.toLowerCase() !== current.name.toLowerCase() && (
-            <p className="text-sm sm:text-base font-bold text-orange-400 line-clamp-1 drop-shadow">
-              {current.firstVideo.title}
-            </p>
-          )}
+                  {item.firstVideo?.title && item.firstVideo.title.toLowerCase() !== item.name.toLowerCase() && (
+                    <p className="text-sm sm:text-base font-bold text-orange-400 line-clamp-1 drop-shadow">
+                      {item.firstVideo.title}
+                    </p>
+                  )}
 
-          {(current.bio || current.firstVideo?.desc) && (
-            <p className="text-xs sm:text-sm text-stone-300 line-clamp-2 max-w-xl hidden xs:block drop-shadow">
-              {current.bio || current.firstVideo?.desc}
-            </p>
-          )}
+                  {(item.bio || item.firstVideo?.desc) && (
+                    <p className="text-xs sm:text-sm text-stone-300 line-clamp-2 max-w-xl hidden xs:block drop-shadow">
+                      {item.bio || item.firstVideo?.desc}
+                    </p>
+                  )}
 
-          <div className="pt-1.5 flex items-center gap-3">
-            <button
-              onClick={() => onSelect(current.name)}
-              className="px-5 py-2.5 bg-orange-500 hover:bg-orange-400 text-stone-950 text-xs sm:text-sm font-black rounded-xl flex items-center gap-2 transition shadow-xl shadow-orange-500/30 cursor-pointer active:scale-95"
-            >
-              <Play className="w-4 h-4 fill-current" />
-              <span>Watch Trend</span>
-            </button>
-            <span className="text-xs font-mono text-stone-400">
-              Trend: <strong className="text-stone-200">{current.name}</strong>
-            </span>
-          </div>
+                  <div className="pt-1.5 flex items-center gap-3">
+                    <button
+                      onClick={() => onSelect(item.name)}
+                      className="px-5 py-2.5 bg-orange-500 hover:bg-orange-400 text-stone-950 text-xs sm:text-sm font-black rounded-xl flex items-center gap-2 transition shadow-xl shadow-orange-500/30 cursor-pointer active:scale-95"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Watch Trend</span>
+                    </button>
+                    <span className="text-xs font-mono text-stone-400">
+                      Trend: <strong className="text-stone-200">{item.name}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -573,7 +611,7 @@ export default function HomeClient({
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-28 space-y-6">
         {/* Sponsor Banner Ad: Reduced to half desktop size (max-w-md / max-w-lg) */}
         {bannerAd?.enabled && bannerAd?.imageUrl && (
-          <div className="w-full max-w-md sm:max-w-lg mx-auto">
+          <div className="w-full max-w-xs sm:max-w-sm mx-auto">
             <div className="relative bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/40 shadow-xl overflow-hidden group hover:border-pink-400/70 transition-all duration-300">
               <a
                 href={bannerAd.linkUrl || 'https://www.hexescortsug.com'}
@@ -586,9 +624,7 @@ export default function HomeClient({
                   alt="Hex Escorts UG - www.hexescortsug.com"
                   className="w-full h-full object-contain sm:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
                 />
-                <span className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[8px] font-mono font-black text-pink-400 px-1.5 py-0.5 rounded border border-pink-500/30 uppercase tracking-widest shadow-md">
-                  SPONSOR AD
-                </span>
+
               </a>
             </div>
           </div>
