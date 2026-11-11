@@ -81,17 +81,18 @@ export default function WatchContent({ video, relatedVideos }: WatchContentProps
 
   const isImage = video.type === 'image';
 
-  // Load banner ad from localStorage
+  // Load banner ad from API
   useEffect(() => {
-    const savedBanner = localStorage.getItem('nude_trends_banner_ads');
-    if (savedBanner) {
+    const fetchAds = async () => {
       try {
-        const parsed = JSON.parse(savedBanner);
-        if (parsed.enabled && parsed.imageUrl) {
-          setBannerAd(parsed);
+        const res = await fetch('/api/ads');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ads?.banner) setBannerAd(data.ads.banner);
         }
       } catch (e) {}
-    }
+    };
+    fetchAds();
   }, []);
 
   const triggerNotification = (msg: string) => {
