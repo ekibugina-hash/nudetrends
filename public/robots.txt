@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /ekibugina
 Disallow: /api/
 
 Sitemap: https://nudetrends.afrozex.com/sitemap.xml

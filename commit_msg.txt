@@ -1,0 +1,1 @@
+feat: UI/UX redesign of trend pages & cards, plus dynamic SEO and sitemap expansion

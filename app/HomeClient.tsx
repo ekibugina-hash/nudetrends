@@ -33,22 +33,18 @@ function FastTopicThumb({
   duration?: string;
   mediaCount?: number;
 }) {
+  const [imgError, setImgError] = useState(false);
+  const src = !imgError ? (thumbnailUrl || imageUrl) : null;
+
   return (
-    <div className="w-32 xs:w-36 sm:w-44 md:w-52 h-28 xs:h-32 sm:h-36 md:h-40 rounded-xl bg-stone-950 border border-stone-850 overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-inner">
-      {thumbnailUrl ? (
+    <div className="w-32 xs:w-36 sm:w-44 md:w-52 h-28 xs:h-32 sm:h-36 md:h-40 rounded-2xl bg-stone-950 border border-stone-850/80 overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-inner">
+      {src ? (
         <img
-          src={thumbnailUrl}
+          src={src}
           alt="Thumbnail"
           loading="lazy"
           decoding="async"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-      ) : imageUrl ? (
-        <img
-          src={imageUrl}
-          alt="Thumbnail"
-          loading="lazy"
-          decoding="async"
+          onError={() => setImgError(true)}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
       ) : (
@@ -71,10 +67,10 @@ function FastTopicThumb({
 
       {/* Format / Duration badge */}
       <span
-        className={`absolute bottom-1.5 right-1.5 text-[8px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded font-bold z-20 shadow-md ${
+        className={`absolute bottom-2 right-2 text-[8px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold z-20 shadow-md ${
           isImage
             ? 'bg-orange-500 text-stone-950 uppercase font-black'
-            : 'bg-stone-950/90 text-stone-300 border border-white/10'
+            : 'bg-stone-950/90 text-stone-300 border border-white/10 backdrop-blur-sm'
         }`}
       >
         {isImage ? 'PHOTO' : duration || 'VIDEO'}
@@ -82,14 +78,14 @@ function FastTopicThumb({
 
       {/* Media count badge */}
       {mediaCount && mediaCount > 1 ? (
-        <span className="absolute top-1.5 left-1.5 bg-stone-950/90 border border-white/10 text-[8px] sm:text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-orange-400 z-20 shadow-md">
-          {mediaCount} media
+        <span className="absolute top-2 left-2 bg-stone-950/90 border border-white/10 text-[8px] sm:text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md text-orange-400 z-20 shadow-md backdrop-blur-sm">
+          {mediaCount} items
         </span>
       ) : null}
 
       {/* Play hover button */}
       <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-500 text-stone-950 flex items-center justify-center shadow-xl">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-500 text-stone-950 flex items-center justify-center shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
           <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
         </div>
       </div>
@@ -101,9 +97,11 @@ function FastTopicThumb({
 function TopicTrendCard({
   item,
   onClick,
+  isRecent,
 }: {
   item: Creator;
   onClick: () => void;
+  isRecent?: boolean;
 }) {
   const isImage = item.firstVideo?.type === 'image';
   const duration = item.firstVideo?.duration || (isImage ? 'PHOTO' : '03:45');
@@ -113,9 +111,9 @@ function TopicTrendCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] p-3.5 sm:p-4 md:p-5 rounded-2xl flex flex-row gap-3 sm:gap-4 md:gap-5 hover:border-orange-500/40 hover:bg-white/[0.06] transition-all shadow-md group cursor-pointer"
+      className="bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] hover:border-orange-500/50 p-3.5 sm:p-4 md:p-5 rounded-2xl sm:rounded-3xl flex flex-row gap-3.5 sm:gap-4 md:gap-5 transition-all duration-200 shadow-lg hover:shadow-orange-500/5 group cursor-pointer active:scale-[0.99]"
     >
-      {/* Left Thumbnail (clear photo/thumbnail, NO heavy video streams) */}
+      {/* Left Thumbnail */}
       <FastTopicThumb
         thumbnailUrl={item.thumbnailUrl}
         imageUrl={item.firstVideo?.imageUrl}
@@ -126,10 +124,15 @@ function TopicTrendCard({
         mediaCount={item.videoCount}
       />
 
-      {/* Right Details (Always to the right on both mobile and desktop) */}
+      {/* Right Details */}
       <div className="flex-1 min-w-0 flex flex-col justify-between py-1 space-y-2">
         <div>
-          <div className="flex justify-between items-start gap-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {isRecent && (
+              <span className="text-[9px] font-mono font-extrabold uppercase px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                Fresh
+              </span>
+            )}
             <h3
               className="font-bold text-stone-100 text-sm sm:text-base md:text-lg line-clamp-2 leading-snug group-hover:text-orange-400 transition-colors"
               title={item.name}
@@ -150,7 +153,7 @@ function TopicTrendCard({
         </div>
 
         {/* Bottom row: tags and action button */}
-        <div className="pt-2 border-t border-stone-850 flex items-center justify-between gap-2">
+        <div className="pt-2.5 border-t border-stone-850/80 flex items-center justify-between gap-2">
           <div className="flex flex-wrap gap-1.5 flex-1 overflow-hidden">
             {interestingTitles.length > 0 ? (
               interestingTitles.slice(0, 2).map((t, idx) => (
@@ -163,7 +166,7 @@ function TopicTrendCard({
               ))
             ) : (
               <span className="text-[9px] sm:text-[10px] text-stone-500 font-mono">
-                {item.videoCount && item.videoCount > 1 ? `${item.videoCount} Items` : 'Fresh Drop'}
+                {item.videoCount && item.videoCount > 1 ? `${item.videoCount} Items` : 'Exclusive Drop'}
               </span>
             )}
           </div>
@@ -481,10 +484,11 @@ export default function HomeClient({
           {/* Topics / Trends Grid (Mobile: thumbnail left, info right; Desktop: 2-column) */}
           {paginatedItems.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-              {paginatedItems.map((item) => (
+              {paginatedItems.map((item, idx) => (
                 <TopicTrendCard
                   key={item.name}
                   item={item}
+                  isRecent={currentPage === 1 && idx < 4}
                   onClick={() => handleOpenTopic(item.name)}
                 />
               ))}
