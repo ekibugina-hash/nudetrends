@@ -1,1 +1,0 @@
-feat: display all trend media stacked vertically and remove all media section
