@@ -12,6 +12,12 @@ import {
   Video as VideoIcon,
   Image as ImageIcon,
   Compass,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  Sparkles,
+  TrendingUp,
+  Layers,
 } from 'lucide-react';
 import { Creator, Video } from './types';
 
@@ -180,6 +186,194 @@ function TopicTrendCard({
   );
 }
 
+// ─── Stories Tray Widget (NodoLeaks Style) ───────────────────────────────────
+function StoriesTray({
+  creators,
+  onSelect,
+}: {
+  creators: Creator[];
+  onSelect: (name: string) => void;
+}) {
+  if (!creators || creators.length === 0) return null;
+
+  return (
+    <div className="w-full bg-white/[0.02] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+          <h3 className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-stone-200">
+            Top Trends & Creators
+          </h3>
+        </div>
+        <span className="text-[10px] font-mono text-stone-500">Tap to view</span>
+      </div>
+
+      <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto pb-1 pt-0.5 px-0.5 no-scrollbar scroll-smooth">
+        {creators.slice(0, 16).map((creator, idx) => {
+          const thumb = creator.thumbnailUrl || creator.firstVideo?.thumbnailUrl || creator.firstVideo?.imageUrl;
+          return (
+            <button
+              key={creator.name}
+              onClick={() => onSelect(creator.name)}
+              className="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer focus:outline-none"
+            >
+              <div className="relative p-[2px] rounded-full bg-gradient-to-tr from-orange-500 via-pink-500 to-amber-400 group-hover:scale-105 transition-transform duration-200 shadow-md">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-stone-950 border-2 border-[#090909] flex items-center justify-center">
+                  {thumb ? (
+                    <img
+                      src={thumb}
+                      alt={creator.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full flex items-center justify-center font-black font-mono text-xs text-orange-400"
+                      style={{ backgroundImage: creator.gradient }}
+                    >
+                      {creator.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                {idx < 4 && (
+                  <span className="absolute -bottom-0.5 -right-0.5 bg-orange-600 text-[8px] font-mono font-black text-stone-950 px-1 py-0.2 rounded-full uppercase border border-stone-950 shadow">
+                    HOT
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] sm:text-[11px] font-medium text-stone-300 max-w-[64px] sm:max-w-[72px] truncate group-hover:text-orange-400 transition-colors">
+                {creator.name}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Hero Breaking Leak Slider Widget (NodoLeaks Style) ───────────────────────
+function HeroSliderWidget({
+  featuredItems,
+  onSelect,
+}: {
+  featuredItems: Creator[];
+  onSelect: (name: string) => void;
+}) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+
+  useEffect(() => {
+    if (featuredItems.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIdx((prev) => (prev + 1) % featuredItems.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [featuredItems.length]);
+
+  if (!featuredItems || featuredItems.length === 0) return null;
+  const current = featuredItems[currentIdx];
+  const bgImage = current.firstVideo?.imageUrl || current.firstVideo?.thumbnailUrl || current.thumbnailUrl;
+
+  return (
+    <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-950 border border-stone-850 shadow-2xl group">
+      {/* Background Poster with Gradient */}
+      <div className="relative w-full aspect-[21/9] min-h-[200px] sm:min-h-[260px] md:min-h-[300px]">
+        {bgImage ? (
+          <img
+            src={bgImage}
+            alt={current.name}
+            className="w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-700"
+          />
+        ) : (
+          <div
+            className="w-full h-full"
+            style={{ backgroundImage: current.gradient }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent" />
+
+        {/* Content Overlay */}
+        <div className="absolute inset-0 p-4 sm:p-7 flex flex-col justify-end space-y-2 z-10 max-w-2xl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1 bg-orange-600 text-stone-950 text-[9px] sm:text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
+              <Flame className="w-3 h-3" />
+              Breaking Leak
+            </span>
+            <span className="bg-black/60 backdrop-blur-md border border-white/10 text-stone-300 text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-md">
+              {current.videoCount || 1} Media Files
+            </span>
+          </div>
+
+          <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-tight line-clamp-2">
+            {current.firstVideo?.title || current.name}
+          </h3>
+
+          {(current.bio || current.firstVideo?.desc) && (
+            <p className="text-xs sm:text-sm text-stone-300 line-clamp-1 max-w-xl hidden xs:block">
+              {current.bio || current.firstVideo?.desc}
+            </p>
+          )}
+
+          <div className="pt-1 flex items-center gap-3">
+            <button
+              onClick={() => onSelect(current.name)}
+              className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-stone-950 text-xs sm:text-sm font-black rounded-xl flex items-center gap-2 transition shadow-lg shadow-orange-500/25 cursor-pointer active:scale-95"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Watch Trend</span>
+            </button>
+            <span className="text-[11px] font-mono text-stone-400">
+              Trend: <strong className="text-stone-200">{current.name}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Left / Right Carousel Controls */}
+        {featuredItems.length > 1 && (
+          <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5">
+            <button
+              onClick={() => setCurrentIdx((prev) => (prev - 1 + featuredItems.length) % featuredItems.length)}
+              className="p-1.5 rounded-lg bg-black/60 hover:bg-black/90 border border-white/10 text-white transition cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-1 px-1">
+              {featuredItems.map((_, dotIdx) => (
+                <span
+                  key={dotIdx}
+                  onClick={() => setCurrentIdx(dotIdx)}
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    dotIdx === currentIdx ? 'w-5 bg-orange-500' : 'w-1.5 bg-white/40'
+                  }`}
+                />
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentIdx((prev) => (prev + 1) % featuredItems.length)}
+              className="p-1.5 rounded-lg bg-black/60 hover:bg-black/90 border border-white/10 text-white transition cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Popular Tags Cloud ───────────────────────────────────────────────────────
+const POPULAR_TAGS = [
+  '#All',
+  '#Kampala',
+  '#Campus',
+  '#TikTok',
+  '#Snapchat',
+  '#ViralLeaks',
+  '#Sextapes',
+  '#Exclusive',
+];
+
 // ─── Home Client Main ─────────────────────────────────────────────────────────
 export default function HomeClient({
   initialCreators = [],
@@ -190,6 +384,8 @@ export default function HomeClient({
   const router = useRouter();
   const [items, setItems] = useState<Creator[]>(initialCreators);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'latest' | 'videos' | 'photos'>('latest');
+  const [selectedTag, setSelectedTag] = useState<string>('#All');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -237,24 +433,46 @@ export default function HomeClient({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, activeTab, selectedTag]);
 
   const handleOpenTopic = (topicName: string) => {
     router.push(`/creator/${encodeURIComponent(topicName)}`);
   };
 
-  // Filtered list
-  const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (item.bio || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (item.firstVideo?.desc || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter pipeline combining Search, Tabs, and Tags
+  const filteredItems = items.filter((item) => {
+    const matchesSearch =
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.bio || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.firstVideo?.desc || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.firstVideo?.interestingTitles || []).some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesTab =
+      activeTab === 'latest'
+        ? true
+        : activeTab === 'videos'
+        ? item.firstVideo?.type !== 'image'
+        : item.firstVideo?.type === 'image';
+
+    const matchesTag =
+      selectedTag === '#All'
+        ? true
+        : item.name.toLowerCase().includes(selectedTag.replace('#', '').toLowerCase()) ||
+          (item.bio || '').toLowerCase().includes(selectedTag.replace('#', '').toLowerCase()) ||
+          (item.firstVideo?.desc || '').toLowerCase().includes(selectedTag.replace('#', '').toLowerCase()) ||
+          (item.firstVideo?.interestingTitles || []).some(t => t.toLowerCase().includes(selectedTag.replace('#', '').toLowerCase()));
+
+    return matchesSearch && matchesTab && matchesTag;
+  });
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
   const paginatedItems = filteredItems.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  // Top 4 items for the hero carousel
+  const featuredHeroItems = items.slice(0, 4);
 
   return (
     <div className="min-h-screen bg-[#090909] text-stone-200">
@@ -440,6 +658,12 @@ export default function HomeClient({
           </button>
         </div>
 
+        {/* ── WIDGET 1: Stories / Featured Creators Bubble Bar (NodoLeaks style) ── */}
+        <StoriesTray creators={items} onSelect={handleOpenTopic} />
+
+        {/* ── WIDGET 2: Featured Breaking Leak Hero Slider (NodoLeaks style) ───── */}
+        <HeroSliderWidget featuredItems={featuredHeroItems} onSelect={handleOpenTopic} />
+
         {/* Sponsor Banner Ad: Reduced to half desktop size (max-w-md / max-w-lg) */}
         {bannerAd?.enabled && bannerAd?.imageUrl && (
           <div className="w-full max-w-md sm:max-w-lg mx-auto">
@@ -463,24 +687,82 @@ export default function HomeClient({
           </div>
         )}
 
-        {/* ── Section Header: Trending Videos (NO NUMBER) ──────────────────────── */}
-        <div className="space-y-6 animate-fadeIn">
-          <div className="flex items-center justify-between border-b border-stone-850 pb-3">
-            <h2 className="text-xs font-extrabold text-orange-400 uppercase tracking-widest flex items-center gap-2">
-              <VideoIcon className="w-3.5 h-3.5 text-orange-500" />
-              <span>Trending Videos</span>
-            </h2>
-
-            {searchQuery && (
+        {/* ── WIDGET 3: Tabs & Popular Tags Navigation (NodoLeaks Style) ───────── */}
+        <div className="space-y-3 pt-2">
+          {/* Main Tabs (Latest Drops, Video Streams, Photo Leaks) */}
+          <div className="flex items-center justify-between border-b border-stone-850 pb-3 flex-wrap gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
-                onClick={() => setSearchQuery('')}
+                onClick={() => setActiveTab('latest')}
+                className={`px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  activeTab === 'latest'
+                    ? 'bg-orange-500 text-stone-950 shadow-md shadow-orange-500/20'
+                    : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>Latest Drops</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('videos')}
+                className={`px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  activeTab === 'videos'
+                    ? 'bg-orange-500 text-stone-950 shadow-md shadow-orange-500/20'
+                    : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800'
+                }`}
+              >
+                <VideoIcon className="w-3.5 h-3.5" />
+                <span>Full Videos</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('photos')}
+                className={`px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  activeTab === 'photos'
+                    ? 'bg-orange-500 text-stone-950 shadow-md shadow-orange-500/20'
+                    : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>Photo Leaks</span>
+              </button>
+            </div>
+
+            {(searchQuery || selectedTag !== '#All') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedTag('#All');
+                }}
                 className="text-xs text-orange-500 hover:underline cursor-pointer"
               >
-                Clear Search
+                Reset Filters
               </button>
             )}
           </div>
 
+          {/* Popular Tag Pills (NodoLeaks Style) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {POPULAR_TAGS.map((tag) => {
+              const isSelected = selectedTag === tag;
+              return (
+                <button
+                  key={tag}
+                  onClick={() => setSelectedTag(tag)}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-mono font-medium transition cursor-pointer flex-shrink-0 ${
+                    isSelected
+                      ? 'bg-stone-200 text-stone-950 font-bold shadow-sm'
+                      : 'bg-stone-950 hover:bg-stone-900 text-stone-400 hover:text-stone-200 border border-stone-850'
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Section Header: Trending Videos ──────────────────────────────────── */}
+        <div className="space-y-6 animate-fadeIn">
           {/* Topics / Trends Grid (Mobile: thumbnail left, info right; Desktop: 2-column) */}
           {paginatedItems.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
@@ -498,7 +780,7 @@ export default function HomeClient({
               <Compass className="w-10 h-10 text-stone-600 mx-auto" />
               <div>
                 <h4 className="font-bold text-stone-200 text-sm">No trends found</h4>
-                <p className="text-xs text-stone-500 mt-1">Try another keyword or clear search filter.</p>
+                <p className="text-xs text-stone-500 mt-1">Try selecting another tab or clear your search.</p>
               </div>
             </div>
           )}
@@ -551,51 +833,9 @@ export default function HomeClient({
             <p className="text-[11px] text-stone-500">Premium adult content and exclusive leaks network.</p>
           </div>
 
-          <div className="flex items-center justify-center flex-wrap gap-4 text-xs text-stone-400">
-            <span className="hover:text-orange-500 transition-colors">Premium Network</span>
-            <span className="text-stone-700">•</span>
-            <span className="hover:text-orange-500 transition-colors">Exclusive Creators</span>
-            <span className="text-stone-700">•</span>
-            <span className="hover:text-orange-500 transition-colors">Trends & Updates</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <a
-              href="https://x.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-8 h-8 rounded-full bg-black hover:bg-stone-900 border border-stone-800 flex items-center justify-center text-white transition-all shadow-md"
-            >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </a>
-            <a
-              href="https://t.me/+d5-D8vyHKuMzZDdk"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-8 h-8 rounded-full bg-[#0088cc] hover:bg-[#0077b3] flex items-center justify-center text-white transition-all shadow-md"
-            >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M19.9 3.01L2.24 9.81c-1.13.45-1.12 1.09-.2 1.37l4.53 1.41 10.5-6.62c.5-.3.95-.14.57.2L9.1 14.67v3.38c.33 0 .48-.15.66-.33l1.58-1.54 3.29 2.43c.6.33 1.04.16 1.19-.55l2.16-10.2c.22-.88-.34-1.28-.98-1z" />
-              </svg>
-            </a>
-          </div>
-
           <p className="text-[11px] text-stone-600 font-mono">© 2026 Nude Trends Networks Inc. All rights reserved.</p>
         </div>
       </footer>
-
-      {/* Secret admin trigger */}
-      <div className="fixed bottom-3 left-3 z-[2500]">
-        <Link
-          href="/login"
-          className="w-3.5 h-3.5 bg-stone-900/10 hover:bg-stone-900/40 border border-white/5 rounded flex items-center justify-center opacity-10 hover:opacity-100 transition-all duration-300 cursor-default select-none text-[8px] text-stone-700 hover:text-stone-400 font-mono"
-          title="Access Portal"
-        >
-          .
-        </Link>
-      </div>
     </div>
   );
 }
