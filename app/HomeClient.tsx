@@ -600,82 +600,6 @@ export default function HomeClient({
       {/* ── WIDGET: Hero Breaking Leak Slider (Seamless Edge-to-Edge) ─────────── */}
       <HeroSliderWidget featuredItems={featuredHeroItems} onSelect={handleOpenTopic} />
 
-      {/* ── WIDGET: Edge-to-Edge Tabs & Popular Tags Navigation (NodoLeaks Style) ─ */}
-      <div className="w-full bg-[#0c0c0c] border-b border-stone-850 py-3.5 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-3">
-          {/* Main Tabs (Latest Drops, Full Videos, Photo Leaks) */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <button
-                onClick={() => setActiveTab('latest')}
-                className={`px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                  activeTab === 'latest'
-                    ? 'bg-orange-500 text-stone-950 shadow-md shadow-orange-500/20'
-                    : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800'
-                }`}
-              >
-                <Flame className="w-3.5 h-3.5" />
-                <span>Latest Drops</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('videos')}
-                className={`px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                  activeTab === 'videos'
-                    ? 'bg-orange-500 text-stone-950 shadow-md shadow-orange-500/20'
-                    : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800'
-                }`}
-              >
-                <VideoIcon className="w-3.5 h-3.5" />
-                <span>Full Videos</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('photos')}
-                className={`px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                  activeTab === 'photos'
-                    ? 'bg-orange-500 text-stone-950 shadow-md shadow-orange-500/20'
-                    : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800'
-                }`}
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span>Photo Leaks</span>
-              </button>
-            </div>
-
-            {(searchQuery || selectedTag !== '#All') && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedTag('#All');
-                }}
-                className="text-xs text-orange-500 hover:underline cursor-pointer font-mono"
-              >
-                Reset Filters
-              </button>
-            )}
-          </div>
-
-          {/* Popular Tag Pills (Edge-to-Edge Scrollable) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {POPULAR_TAGS.map((tag) => {
-              const isSelected = selectedTag === tag;
-              return (
-                <button
-                  key={tag}
-                  onClick={() => setSelectedTag(tag)}
-                  className={`px-3 py-1 rounded-lg text-[11px] font-mono font-medium transition cursor-pointer flex-shrink-0 ${
-                    isSelected
-                      ? 'bg-stone-200 text-stone-950 font-bold shadow-sm'
-                      : 'bg-stone-950 hover:bg-stone-900 text-stone-400 hover:text-stone-200 border border-stone-850'
-                  }`}
-                >
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
       {/* ── Main Content Area ────────────────────────────────────────────────── */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-28 space-y-6">
         {/* Sponsor Banner Ad: Reduced to half desktop size (max-w-md / max-w-lg) */}
@@ -815,6 +739,7 @@ export default function HomeClient({
           </button>
         </div>
       </nav>
+
     </div>
   );
 }

@@ -323,11 +323,11 @@ export default function CreatorClient({
             src={thumbnailUrl}
             alt=""
             aria-hidden="true"
-            className="w-full h-full object-cover object-top opacity-35 sm:opacity-40 filter blur-[1px] scale-105"
+            className="w-full h-full object-cover object-top opacity-75 sm:opacity-80 scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#090909]/70 via-transparent to-[#090909]" />
-          <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#090909] via-[#090909]/90 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#090909]/80 via-transparent to-[#090909]/80" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#090909]/30 via-transparent to-[#090909]" />
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#090909] via-[#090909]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#090909]/40 via-transparent to-[#090909]/40" />
         </div>
       )}
       {/* Notification Toast */}

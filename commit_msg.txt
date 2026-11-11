@@ -1,1 +1,1 @@
-feat: fixed bottom navigation bar always visible on homepage
+fix: remove mid-page tabs, keep fixed bottom nav, clearer trend page backgrounds
