@@ -396,21 +396,19 @@ export default function CreatorClient({
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-6 space-y-6">
-        {/* Breadcrumbs + Hero overlap wrapper — pulls up into the background photo */}
-        <div className="pt-[260px] sm:pt-[320px] -mt-[260px] sm:-mt-[320px] space-y-3">
-          {/* Semantic Breadcrumbs for SEO & UX */}
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[11px] font-mono text-stone-400 flex-wrap px-1">
-            <Link href="/" className="hover:text-orange-400 transition-colors">Home</Link>
-            <span>/</span>
-            <Link href="/#trending-videos" className="hover:text-orange-400 transition-colors">Trends</Link>
-            <span>/</span>
-            <span className="text-stone-200 font-bold">{creatorName}</span>
-          </nav>
+      {/* Main Container — top padding pushes all content below the background photo */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-[360px] sm:pt-[420px] pb-6 space-y-6">
+        {/* Semantic Breadcrumbs for SEO & UX */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[11px] font-mono text-stone-400 flex-wrap">
+          <Link href="/" className="hover:text-orange-400 transition-colors">Home</Link>
+          <span>/</span>
+          <Link href="/#trending-videos" className="hover:text-orange-400 transition-colors">Trends</Link>
+          <span>/</span>
+          <span className="text-stone-200 font-bold">{creatorName}</span>
+        </nav>
 
-          {/* ── Topic Hero & Info Section (Frosted glass overlapping the background photo) ─────── */}
-          <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-stone-950/80 backdrop-blur-md">
+        {/* ── Topic Hero & Info Section ─────── */}
+        <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-stone-950/80 backdrop-blur-md">
 
           {/* Subtle Ambient Glow */}
           <div className="absolute -top-24 -left-24 w-72 h-72 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -484,7 +482,6 @@ export default function CreatorClient({
             )}
           </div>
         </div>
-        </div>{/* end overlap wrapper */}
 
         {/* ── Active Video / Photo Player Section ─────────────────────────────── */}
         {activeVideo && (

@@ -1,0 +1,1 @@
+fix: hero card moved below background photo on trend page
