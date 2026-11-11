@@ -15,9 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Flame,
-  Sparkles,
-  TrendingUp,
-  Layers,
 } from 'lucide-react';
 import { Creator, Video } from './types';
 
@@ -186,73 +183,7 @@ function TopicTrendCard({
   );
 }
 
-// ─── Stories Tray Widget (NodoLeaks Style) ───────────────────────────────────
-function StoriesTray({
-  creators,
-  onSelect,
-}: {
-  creators: Creator[];
-  onSelect: (name: string) => void;
-}) {
-  if (!creators || creators.length === 0) return null;
-
-  return (
-    <div className="w-full bg-white/[0.02] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-3 sm:p-4">
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-          <h3 className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-stone-200">
-            Top Trends & Creators
-          </h3>
-        </div>
-        <span className="text-[10px] font-mono text-stone-500">Tap to view</span>
-      </div>
-
-      <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto pb-1 pt-0.5 px-0.5 no-scrollbar scroll-smooth">
-        {creators.slice(0, 16).map((creator, idx) => {
-          const thumb = creator.thumbnailUrl || creator.firstVideo?.thumbnailUrl || creator.firstVideo?.imageUrl;
-          return (
-            <button
-              key={creator.name}
-              onClick={() => onSelect(creator.name)}
-              className="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer focus:outline-none"
-            >
-              <div className="relative p-[2px] rounded-full bg-gradient-to-tr from-orange-500 via-pink-500 to-amber-400 group-hover:scale-105 transition-transform duration-200 shadow-md">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-stone-950 border-2 border-[#090909] flex items-center justify-center">
-                  {thumb ? (
-                    <img
-                      src={thumb}
-                      alt={creator.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div
-                      className="w-full h-full flex items-center justify-center font-black font-mono text-xs text-orange-400"
-                      style={{ backgroundImage: creator.gradient }}
-                    >
-                      {creator.name.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                {idx < 4 && (
-                  <span className="absolute -bottom-0.5 -right-0.5 bg-orange-600 text-[8px] font-mono font-black text-stone-950 px-1 py-0.2 rounded-full uppercase border border-stone-950 shadow">
-                    HOT
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] sm:text-[11px] font-medium text-stone-300 max-w-[64px] sm:max-w-[72px] truncate group-hover:text-orange-400 transition-colors">
-                {creator.name}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Hero Breaking Leak Slider Widget (NodoLeaks Style) ───────────────────────
+// ─── Hero Breaking Leak Slider Widget (Seamless Edge-to-Edge) ─────────────────
 function HeroSliderWidget({
   featuredItems,
   onSelect,
@@ -275,9 +206,9 @@ function HeroSliderWidget({
   const bgImage = current.firstVideo?.imageUrl || current.firstVideo?.thumbnailUrl || current.thumbnailUrl;
 
   return (
-    <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-950 border border-stone-850 shadow-2xl group">
-      {/* Background Poster with Gradient */}
-      <div className="relative w-full aspect-[21/9] min-h-[200px] sm:min-h-[260px] md:min-h-[300px]">
+    <div className="relative w-full overflow-hidden bg-stone-950 border-b border-stone-850 shadow-2xl group">
+      {/* Background Poster spanning from extreme left to extreme right */}
+      <div className="relative w-full h-[220px] xs:h-[260px] sm:h-[340px] md:h-[400px] lg:h-[450px]">
         {bgImage ? (
           <img
             src={bgImage}
@@ -290,71 +221,73 @@ function HeroSliderWidget({
             style={{ backgroundImage: current.gradient }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#090909] via-black/60 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
 
         {/* Content Overlay */}
-        <div className="absolute inset-0 p-4 sm:p-7 flex flex-col justify-end space-y-2 z-10 max-w-2xl">
+        <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 flex flex-col justify-end pb-6 sm:pb-10 relative z-10 space-y-2.5 max-w-2xl sm:max-w-3xl">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 bg-orange-600 text-stone-950 text-[9px] sm:text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
+            <span className="inline-flex items-center gap-1 bg-orange-600 text-stone-950 text-[9px] sm:text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
               <Flame className="w-3 h-3" />
               Breaking Leak
             </span>
-            <span className="bg-black/60 backdrop-blur-md border border-white/10 text-stone-300 text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-md">
+            <span className="bg-black/70 backdrop-blur-md border border-white/10 text-stone-300 text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-md">
               {current.videoCount || 1} Media Files
             </span>
           </div>
 
-          <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-tight line-clamp-2">
+          <h3 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight line-clamp-2 drop-shadow-md">
             {current.firstVideo?.title || current.name}
           </h3>
 
           {(current.bio || current.firstVideo?.desc) && (
-            <p className="text-xs sm:text-sm text-stone-300 line-clamp-1 max-w-xl hidden xs:block">
+            <p className="text-xs sm:text-sm text-stone-300 line-clamp-2 max-w-xl hidden xs:block drop-shadow">
               {current.bio || current.firstVideo?.desc}
             </p>
           )}
 
-          <div className="pt-1 flex items-center gap-3">
+          <div className="pt-1.5 flex items-center gap-3">
             <button
               onClick={() => onSelect(current.name)}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-stone-950 text-xs sm:text-sm font-black rounded-xl flex items-center gap-2 transition shadow-lg shadow-orange-500/25 cursor-pointer active:scale-95"
+              className="px-5 py-2.5 bg-orange-500 hover:bg-orange-400 text-stone-950 text-xs sm:text-sm font-black rounded-xl flex items-center gap-2 transition shadow-xl shadow-orange-500/30 cursor-pointer active:scale-95"
             >
-              <Play className="w-3.5 h-3.5 fill-current" />
+              <Play className="w-4 h-4 fill-current" />
               <span>Watch Trend</span>
             </button>
-            <span className="text-[11px] font-mono text-stone-400">
+            <span className="text-xs font-mono text-stone-400">
               Trend: <strong className="text-stone-200">{current.name}</strong>
             </span>
           </div>
         </div>
 
-        {/* Left / Right Carousel Controls */}
+        {/* Carousel controls on extreme right */}
         {featuredItems.length > 1 && (
-          <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5">
-            <button
-              onClick={() => setCurrentIdx((prev) => (prev - 1 + featuredItems.length) % featuredItems.length)}
-              className="p-1.5 rounded-lg bg-black/60 hover:bg-black/90 border border-white/10 text-white transition cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <div className="flex items-center gap-1 px-1">
-              {featuredItems.map((_, dotIdx) => (
-                <span
-                  key={dotIdx}
-                  onClick={() => setCurrentIdx(dotIdx)}
-                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                    dotIdx === currentIdx ? 'w-5 bg-orange-500' : 'w-1.5 bg-white/40'
-                  }`}
-                />
-              ))}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
+            <div className="absolute bottom-6 sm:bottom-10 right-4 sm:right-6 z-20 flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentIdx((prev) => (prev - 1 + featuredItems.length) % featuredItems.length)}
+                className="p-2 rounded-xl bg-black/60 hover:bg-black/90 border border-white/10 text-white transition cursor-pointer backdrop-blur-sm"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-1.5 px-1.5">
+                {featuredItems.map((_, dotIdx) => (
+                  <span
+                    key={dotIdx}
+                    onClick={() => setCurrentIdx(dotIdx)}
+                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                      dotIdx === currentIdx ? 'w-6 bg-orange-500 shadow-sm shadow-orange-500/50' : 'w-1.5 bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={() => setCurrentIdx((prev) => (prev + 1) % featuredItems.length)}
+                className="p-2 rounded-xl bg-black/60 hover:bg-black/90 border border-white/10 text-white transition cursor-pointer backdrop-blur-sm"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              onClick={() => setCurrentIdx((prev) => (prev + 1) % featuredItems.length)}
-              className="p-1.5 rounded-lg bg-black/60 hover:bg-black/90 border border-white/10 text-white transition cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
           </div>
         )}
       </div>
@@ -421,7 +354,7 @@ export default function HomeClient({
           if (data.ads?.banner) setBannerAd(data.ads.banner);
           if (data.ads?.popup) {
             setPopupAd(data.ads.popup);
-            if (data.ads.popup.enabled && data.ads.popup.imageUrl) {
+            if (data.ads?.popup.enabled && data.ads.popup.imageUrl) {
               setTimeout(() => setShowPopupModal(true), 7000);
             }
           }
@@ -637,10 +570,9 @@ export default function HomeClient({
         </div>
       </header>
 
-      {/* ── Main Content Area ────────────────────────────────────────────────── */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Mobile Search Input */}
-        <div className="md:hidden w-full flex items-center gap-2">
+      {/* ── Mobile Search Bar (Directly below header) ────────────────────────── */}
+      <div className="md:hidden px-4 pt-3 pb-1">
+        <div className="w-full flex items-center gap-2">
           <div className="relative flex-1">
             <input
               type="text"
@@ -657,40 +589,16 @@ export default function HomeClient({
             <Search className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
 
-        {/* ── WIDGET 1: Stories / Featured Creators Bubble Bar (NodoLeaks style) ── */}
-        <StoriesTray creators={items} onSelect={handleOpenTopic} />
+      {/* ── WIDGET: Hero Breaking Leak Slider (Seamless Edge-to-Edge) ─────────── */}
+      <HeroSliderWidget featuredItems={featuredHeroItems} onSelect={handleOpenTopic} />
 
-        {/* ── WIDGET 2: Featured Breaking Leak Hero Slider (NodoLeaks style) ───── */}
-        <HeroSliderWidget featuredItems={featuredHeroItems} onSelect={handleOpenTopic} />
-
-        {/* Sponsor Banner Ad: Reduced to half desktop size (max-w-md / max-w-lg) */}
-        {bannerAd?.enabled && bannerAd?.imageUrl && (
-          <div className="w-full max-w-md sm:max-w-lg mx-auto">
-            <div className="relative bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/40 shadow-xl overflow-hidden group hover:border-pink-400/70 transition-all duration-300">
-              <a
-                href={bannerAd.linkUrl || 'https://www.hexescortsug.com'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative block w-full aspect-[16/9] rounded-xl overflow-hidden bg-black"
-              >
-                <img
-                  src={bannerAd.imageUrl}
-                  alt="Hex Escorts UG - www.hexescortsug.com"
-                  className="w-full h-full object-contain sm:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
-                />
-                <span className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[8px] font-mono font-black text-pink-400 px-1.5 py-0.5 rounded border border-pink-500/30 uppercase tracking-widest shadow-md">
-                  SPONSOR AD
-                </span>
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* ── WIDGET 3: Tabs & Popular Tags Navigation (NodoLeaks Style) ───────── */}
-        <div className="space-y-3 pt-2">
-          {/* Main Tabs (Latest Drops, Video Streams, Photo Leaks) */}
-          <div className="flex items-center justify-between border-b border-stone-850 pb-3 flex-wrap gap-3">
+      {/* ── WIDGET: Edge-to-Edge Tabs & Popular Tags Navigation (NodoLeaks Style) ─ */}
+      <div className="w-full bg-[#0c0c0c] border-b border-stone-850 py-3.5 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-3">
+          {/* Main Tabs (Latest Drops, Full Videos, Photo Leaks) */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => setActiveTab('latest')}
@@ -733,14 +641,14 @@ export default function HomeClient({
                   setSearchQuery('');
                   setSelectedTag('#All');
                 }}
-                className="text-xs text-orange-500 hover:underline cursor-pointer"
+                className="text-xs text-orange-500 hover:underline cursor-pointer font-mono"
               >
                 Reset Filters
               </button>
             )}
           </div>
 
-          {/* Popular Tag Pills (NodoLeaks Style) */}
+          {/* Popular Tag Pills (Edge-to-Edge Scrollable) */}
           <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
             {POPULAR_TAGS.map((tag) => {
               const isSelected = selectedTag === tag;
@@ -760,6 +668,32 @@ export default function HomeClient({
             })}
           </div>
         </div>
+      </div>
+
+      {/* ── Main Content Area ────────────────────────────────────────────────── */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Sponsor Banner Ad: Reduced to half desktop size (max-w-md / max-w-lg) */}
+        {bannerAd?.enabled && bannerAd?.imageUrl && (
+          <div className="w-full max-w-md sm:max-w-lg mx-auto">
+            <div className="relative bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/40 shadow-xl overflow-hidden group hover:border-pink-400/70 transition-all duration-300">
+              <a
+                href={bannerAd.linkUrl || 'https://www.hexescortsug.com'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative block w-full aspect-[16/9] rounded-xl overflow-hidden bg-black"
+              >
+                <img
+                  src={bannerAd.imageUrl}
+                  alt="Hex Escorts UG - www.hexescortsug.com"
+                  className="w-full h-full object-contain sm:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
+                />
+                <span className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[8px] font-mono font-black text-pink-400 px-1.5 py-0.5 rounded border border-pink-500/30 uppercase tracking-widest shadow-md">
+                  SPONSOR AD
+                </span>
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* ── Section Header: Trending Videos ──────────────────────────────────── */}
         <div className="space-y-6 animate-fadeIn">
