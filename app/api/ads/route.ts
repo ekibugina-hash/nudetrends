@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readDb, writeDb } from '../../lib/db';
 import { isAdminRequest } from '../../lib/auth';
+import { revalidatePath } from 'next/cache';
 
 /**
  * Ads config is an object { banner: {...}, popup: {...} }, not an array.
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
     const payload = await request.json();
     const success = await writeAdsToFile(payload);
     if (!success) throw new Error('Failed to save ads');
+    revalidatePath('/', 'layout');
     return NextResponse.json({ success: true, message: 'Ads saved successfully' });
   } catch (err: any) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Video } from '../../types';
 import { readDb, writeDb, getMergedVideos } from '../../lib/db';
 import { isAdminRequest } from '../../lib/auth';
-import { revalidateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 
 async function readVideosFromFile(): Promise<Video[]> {
   return await readDb('videos.json');
@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
     if (!success) {
       return NextResponse.json({ error: 'Failed to write to DB' }, { status: 500 });
     }
+
+    revalidatePath('/', 'layout');
 
     return NextResponse.json({
       success: true,
