@@ -416,76 +416,92 @@ export default function CreatorClient({
           </div>
         )}
 
-        {/* ── Topic Hero & Info Section ────────────────────────────────────────── */}
-        <div className="relative bg-gradient-to-b from-stone-900/40 via-stone-950 to-stone-950 border border-stone-800 rounded-3xl p-5 sm:p-7 shadow-2xl overflow-hidden">
-          <div className="absolute -top-24 -left-24 w-72 h-72 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative flex flex-col md:flex-row items-start md:items-center gap-5 sm:gap-6 justify-between">
-            {/* Left: Avatar/Cover + Details */}
-            <div className="flex items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-stone-900 border-2 border-orange-500/40 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-lg shadow-orange-500/10">
-                {thumbnailUrl ? (
-                  <img
-                    src={thumbnailUrl}
-                    alt={`${creatorName} trend cover`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-orange-600 to-stone-900 flex items-center justify-center text-white font-black text-xl font-mono">
-                    {creatorName.substring(0, 2).toUpperCase()}
-                  </div>
-                )}
-              </div>
-
-              {/* Title & Badges */}
-              <div className="space-y-1.5 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono font-black text-orange-400 bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    <Flame className="w-3 h-3 text-orange-400" />
-                    Verified Trend
-                  </span>
-                  <span className="text-[10px] font-mono text-stone-400">
-                    {videos.length} media item{videos.length === 1 ? '' : 's'}
-                  </span>
-                </div>
-
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight truncate">
-                  {creatorName}
-                </h1>
-
-                <div className="flex items-center gap-2 text-xs font-mono text-stone-400">
-                  <span className="text-stone-300 font-bold">{videoItems.length} Videos</span>
-                  <span>•</span>
-                  <span className="text-stone-300 font-bold">{imageItems.length} Photos</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
-              <button
-                onClick={() => activeVideo && handleShare(activeVideo)}
-                className="flex-1 sm:flex-none px-4 py-2 bg-stone-900 hover:bg-stone-850 text-stone-200 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition border border-stone-800 hover:border-stone-700 cursor-pointer shadow-md"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Share Trend</span>
-              </button>
-            </div>
-          </div>
-
-          {bio ? (
-            <div className="mt-5 pt-4 border-t border-stone-850/80">
-              <p className="text-xs sm:text-sm text-stone-300 leading-relaxed bg-stone-950/80 p-4 rounded-xl border border-stone-850 whitespace-pre-wrap">
-                {bio}
-              </p>
-            </div>
-          ) : (
-            <div className="mt-5 pt-4 border-t border-stone-850/80">
-              <p className="text-xs text-stone-400 leading-relaxed bg-stone-950/60 p-3.5 rounded-xl border border-stone-850">
-                Explore all verified leaks, viral videos, and exclusive photo content of <strong className="text-stone-200">{creatorName}</strong> on NudeTrends Uganda. Stream high-definition media directly from your browser.
-              </p>
+        {/* ── Topic Hero & Info Section (Thumbnail Photo as Background) ─────── */}
+        <div className="relative rounded-3xl overflow-hidden border border-stone-800 shadow-2xl bg-stone-950">
+          {/* Thumbnail photo displayed as full background photo */}
+          {thumbnailUrl && (
+            <div className="absolute inset-0 z-0 overflow-hidden">
+              <img
+                src={thumbnailUrl}
+                alt={`${creatorName} background`}
+                className="w-full h-full object-cover object-center scale-105 opacity-40 blur-[1px]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#090909] via-[#090909]/80 to-[#090909]/60" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#090909] via-[#090909]/75 to-transparent" />
             </div>
           )}
+
+          {/* Subtle Ambient Glow */}
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 p-5 sm:p-7 space-y-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-5 sm:gap-6 justify-between">
+              {/* Left: Avatar/Cover + Details */}
+              <div className="flex items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-stone-900 border-2 border-orange-500/40 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-lg shadow-orange-500/10 backdrop-blur-sm">
+                  {thumbnailUrl ? (
+                    <img
+                      src={thumbnailUrl}
+                      alt={`${creatorName} trend cover`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-orange-600 to-stone-900 flex items-center justify-center text-white font-black text-xl font-mono">
+                      {creatorName.substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Title & Badges */}
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-black text-orange-400 bg-orange-500/20 border border-orange-500/35 px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                      <Flame className="w-3 h-3 text-orange-400" />
+                      Verified Trend
+                    </span>
+                    <span className="text-[10px] font-mono text-stone-300 bg-black/60 px-2.5 py-0.5 rounded-md border border-white/10 backdrop-blur-sm">
+                      {videos.length} media item{videos.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-tight truncate drop-shadow-md">
+                    {creatorName}
+                  </h1>
+
+                  <div className="flex items-center gap-2 text-xs font-mono text-stone-300">
+                    <span className="text-orange-400 font-bold">{videoItems.length} Videos</span>
+                    <span>•</span>
+                    <span className="text-orange-400 font-bold">{imageItems.length} Photos</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Actions */}
+              <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
+                <button
+                  onClick={() => activeVideo && handleShare(activeVideo)}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-stone-900/90 hover:bg-stone-850 text-stone-200 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition border border-stone-800 hover:border-stone-700 cursor-pointer shadow-md backdrop-blur-sm"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Share Trend</span>
+                </button>
+              </div>
+            </div>
+
+            {bio ? (
+              <div className="pt-3 border-t border-stone-850/80">
+                <p className="text-xs sm:text-sm text-stone-200 leading-relaxed bg-black/60 backdrop-blur-md p-4 rounded-xl border border-stone-850 whitespace-pre-wrap shadow-inner">
+                  {bio}
+                </p>
+              </div>
+            ) : (
+              <div className="pt-3 border-t border-stone-850/80">
+                <p className="text-xs text-stone-300 leading-relaxed bg-black/50 backdrop-blur-md p-3.5 rounded-xl border border-stone-850 shadow-inner">
+                  Explore all verified leaks, viral videos, and exclusive photo content of <strong className="text-white">{creatorName}</strong> on NudeTrends Uganda. Stream high-definition media directly from your browser.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Active Video / Photo Player Section ─────────────────────────────── */}

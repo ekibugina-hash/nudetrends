@@ -237,8 +237,14 @@ function HeroSliderWidget({
           </div>
 
           <h3 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight line-clamp-2 drop-shadow-md">
-            {current.firstVideo?.title || current.name}
+            {current.name}
           </h3>
+
+          {current.firstVideo?.title && current.firstVideo.title.toLowerCase() !== current.name.toLowerCase() && (
+            <p className="text-sm sm:text-base font-bold text-orange-400 line-clamp-1 drop-shadow">
+              {current.firstVideo.title}
+            </p>
+          )}
 
           {(current.bio || current.firstVideo?.desc) && (
             <p className="text-xs sm:text-sm text-stone-300 line-clamp-2 max-w-xl hidden xs:block drop-shadow">
