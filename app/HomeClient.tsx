@@ -677,7 +677,7 @@ export default function HomeClient({
       </div>
 
       {/* ── Main Content Area ────────────────────────────────────────────────── */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-28 space-y-6">
         {/* Sponsor Banner Ad: Reduced to half desktop size (max-w-md / max-w-lg) */}
         {bannerAd?.enabled && bannerAd?.imageUrl && (
           <div className="w-full max-w-md sm:max-w-lg mx-auto">
@@ -776,6 +776,45 @@ export default function HomeClient({
           <p className="text-[11px] text-stone-600 font-mono">© 2026 Nude Trends Networks Inc. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* ── Fixed Bottom Navigation Bar (always visible while scrolling) ── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-[2000] bg-[#0c0c0c]/95 backdrop-blur-md border-t border-stone-800 shadow-2xl shadow-black/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setActiveTab('latest')}
+            className={`flex-1 max-w-[160px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-mono font-black transition cursor-pointer ${
+              activeTab === 'latest'
+                ? 'bg-orange-500 text-stone-950 shadow-lg shadow-orange-500/30'
+                : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800 hover:border-stone-700'
+            }`}
+          >
+            <Flame className="w-4 h-4" />
+            <span>Latest Drops</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('videos')}
+            className={`flex-1 max-w-[160px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-mono font-black transition cursor-pointer ${
+              activeTab === 'videos'
+                ? 'bg-orange-500 text-stone-950 shadow-lg shadow-orange-500/30'
+                : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800 hover:border-stone-700'
+            }`}
+          >
+            <VideoIcon className="w-4 h-4" />
+            <span>Full Videos</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('photos')}
+            className={`flex-1 max-w-[160px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-mono font-black transition cursor-pointer ${
+              activeTab === 'photos'
+                ? 'bg-orange-500 text-stone-950 shadow-lg shadow-orange-500/30'
+                : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-800 hover:border-stone-700'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            <span>Photo Leaks</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

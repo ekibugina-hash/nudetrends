@@ -1,0 +1,1 @@
+feat: fixed bottom navigation bar always visible on homepage
