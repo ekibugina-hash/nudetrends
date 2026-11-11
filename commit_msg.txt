@@ -1,1 +1,0 @@
-feat: remove circular stories and make widgets edge-to-edge seamless from left to extreme right
