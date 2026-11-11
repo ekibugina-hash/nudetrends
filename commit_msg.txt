@@ -1,1 +1,0 @@
-feat: top-only background photo on trend page and move ad banner to bottom
