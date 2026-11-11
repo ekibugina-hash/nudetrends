@@ -1,1 +1,0 @@
-fix: play video from the beginning (00:00) instead of 20 seconds
