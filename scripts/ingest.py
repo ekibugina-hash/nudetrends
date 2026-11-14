@@ -209,26 +209,40 @@ def scrape_post_media(post_url: str, post_title: str) -> dict:
     if not html:
         return None
 
-    # 1. Extract direct video source files (.mp4 / .m3u8)
-    video_sources = re.findall(r'<source[^>]+src=["\']([^"\']+\.(?:mp4|m3u8|webm)[^"\']*)["\']', html, re.I)
-    if not video_sources:
-        video_sources = re.findall(r'<video[^>]+src=["\']([^"\']+\.(?:mp4|m3u8|webm)[^"\']*)["\']', html, re.I)
-    if not video_sources:
-        video_sources = re.findall(r'["\'](https?://[^"\']+\.(?:mp4|m3u8))["\']', html, re.I)
+    SOURCE_RE = '<source[^>]+src=["\\x27]([^"\\x27]+\\.(?:mp4|m3u8|webm)[^"\\x27]*)["\\x27]'
+    VTAG_RE   = '<video[^>]+src=["\\x27]([^"\\x27]+\\.(?:mp4|m3u8|webm)[^"\\x27]*)["\\x27]'
+    BARE_RE   = '["\\x27](https?://[^"\\x27]+\\.(?:mp4|m3u8))["\\x27]'
+    IFRAME_RE = '<iframe[^>]*\\bsrc=["\\x27]([^"\\x27]*(?:embed|player|stream|video)[^"\\x27]*)["\\x27]'
+    POSTER_RE = '<video[^>]+poster=["\\x27]([^"\\x27]+\\.(?:jpg|jpeg|png|webp)[^"\\x27]*)["\\x27]'
+    IMGS_RE   = 'src=["\\x27]([^"\\x27]+\\.(?:jpg|jpeg|png|webp))["\\x27]'
 
-    # 2. Extract embed iframes if no direct videos
+    # 1. Direct video source files (.mp4 / .m3u8)
+    video_sources = re.findall(SOURCE_RE, html, re.I)
     if not video_sources:
-        iframes = re.findall(r'<iframe[^>]*\bsrc=["\']([^"\']*(?:embed|player|stream|video)[^"\']*)["\']', html, re.I)
+        video_sources = re.findall(VTAG_RE, html, re.I)
+    if not video_sources:
+        video_sources = re.findall(BARE_RE, html, re.I)
+
+    # 2. Fallback: embed iframes
+    if not video_sources:
+        iframes = re.findall(IFRAME_RE, html, re.I)
         if iframes:
             video_sources = iframes
 
     videos = list(dict.fromkeys(video_sources))
 
-    # 3. Extract high-res images / photos (filtering out ads, logos, banners)
-    all_imgs = re.findall(r'src=["\']([^"\']+\.(?:jpg|jpeg|png|webp))["\']', html, re.I)
+    # 3. Video poster= attributes are the best per-video thumbnails
+    poster_imgs = re.findall(POSTER_RE, html, re.I)
+    poster_imgs = [urllib.parse.urljoin(post_url, p) for p in poster_imgs]
+
+    # 4. All src= images, filtered
+    all_imgs = re.findall(IMGS_RE, html, re.I)
     leak_imgs = []
-    ad_hosts = ["imgur.com", "bkbnxqs", "logo", "flag", "ads", "icon", "banner", "pixel", "avatar"]
-    
+    ad_hosts = [
+        "imgur.com", "bkbnxqs", "logo", "flag", "ads", "icon",
+        "banner", "pixel", "avatar", "xhcdn.com", "xvideos",
+        "pornhub", "redtube", "xnxx",
+    ]
     for img in all_imgs:
         lower = img.lower()
         if any(skip in lower for skip in ad_hosts):
@@ -237,25 +251,41 @@ def scrape_post_media(post_url: str, post_title: str) -> dict:
         if full_img_url not in leak_imgs:
             leak_imgs.append(full_img_url)
 
-    if not videos and not leak_imgs:
+    # Prefer /nudes/ path photos
+    nudes_photos = [img for img in leak_imgs if "/nudes/" in img]
+    all_good_photos = list(dict.fromkeys(
+        poster_imgs + nudes_photos + [i for i in leak_imgs if i not in nudes_photos]
+    ))
+
+    if not videos and not all_good_photos:
         return None
 
-    # Prefer photos from the /nudes/ path
-    nudes_photos = [img for img in leak_imgs if "/nudes/" in img]
-    cover_photo = nudes_photos[0] if nudes_photos else (leak_imgs[0] if leak_imgs else "/images/v2.png")
+    # Skip posts with no native /nudes/ media (off-site embeds from other sites)
+    has_native_media = (
+        any("/nudes/" in v for v in videos)
+        or len(nudes_photos) > 0
+        or len(poster_imgs) > 0
+    )
+    if not has_native_media:
+        print(f"      [~] No native /nudes/ media (off-site embed). Skipping.")
+        return None
 
-    # Extract trend name from media URLs or title
-    trend_name = extract_trend_name(post_title, videos + leak_imgs, post_url)
+    cover_photo = all_good_photos[0] if all_good_photos else "/images/v2.png"
+    trend_name = extract_trend_name(post_title, videos + all_good_photos, post_url)
 
     return {
         "trend_name": trend_name,
         "title": post_title,
         "cover_photo": cover_photo,
         "videos": videos,
-        "photos": leak_imgs,
+        "photos": all_good_photos,
         "tags": generate_tags(post_title),
-        "desc": f"Watch all verified leaked videos and photos of {trend_name}. Full uncut media streaming online."
+        "desc": (
+            f"Watch all verified leaked videos and photos of {trend_name}."
+            " Full uncut media streaming online."
+        ),
     }
+
 
 # ── Main Orchestrator ─────────────────────────────────────────────────────────
 
@@ -290,6 +320,7 @@ def run_ingestion():
         post_hash = hashlib.md5(post_url.encode()).hexdigest()
 
         if post_hash in seen_cache:
+            print(f"[{i}/{len(posts)}] Already seen, skipping: \"{post_title[:55]}\"")
             continue
 
         print(f"[{i}/{len(posts)}] Checking: \"{post_title[:65]}\"")
@@ -306,18 +337,19 @@ def run_ingestion():
         total_photos = len(media["photos"])
 
         print(f"      [★] Trend: \"{trend_name}\" | {total_videos} videos | {total_photos} photos")
+        print(f"      [🖼] Thumbnail: {cover_photo[:70]}...")
 
         # 1. Sync Trend Profile (Creator)
         publish_creator(trend_name, cover_photo, media["desc"])
         ingested_trends += 1
 
-        # 2. Publish all Videos under this trend in order (Part 1, Part 2, etc.)
+        # 2. Publish all Videos under this trend in order (Part 1, Part 2, ...)
         for v_idx, v_url in enumerate(media["videos"]):
             part_suffix = f" (Part {v_idx + 1})" if total_videos > 1 else ""
             vid_title = f"{post_title}{part_suffix}"
             item_id = slugify(f"{trend_name}-v{v_idx + 1}-{hashlib.md5(v_url.encode()).hexdigest()[:6]}")
-            
-            # Use specific video thumbnail if available
+
+            # Match each video with its own thumbnail where available
             v_thumb = media["photos"][v_idx] if v_idx < len(media["photos"]) else cover_photo
 
             video_payload = {
@@ -333,14 +365,14 @@ def run_ingestion():
                 "desc": media["desc"],
                 "category": "Trending",
                 "interestingTitles": media["tags"],
-                "uploadedAt": int(time.time() * 1000)
+                "uploadedAt": int(time.time() * 1000),
             }
 
             print(f"      --> Publishing Video: {vid_title[:55]}...")
             if publish_video(video_payload):
                 ingested_media_files += 1
 
-        # 3. If there are extra standalone photos (and no videos), publish photo leaks
+        # 3. If only photos (no videos), publish photo leaks
         if total_videos == 0 and total_photos > 0:
             for p_idx, p_url in enumerate(media["photos"][:4]):
                 photo_title = f"{post_title} (Photo {p_idx + 1})" if total_photos > 1 else post_title
@@ -359,23 +391,21 @@ def run_ingestion():
                     "desc": media["desc"],
                     "category": "Trending",
                     "interestingTitles": media["tags"],
-                    "uploadedAt": int(time.time() * 1000)
+                    "uploadedAt": int(time.time() * 1000),
                 }
                 print(f"      --> Publishing Photo: {photo_title[:55]}...")
                 if publish_video(photo_payload):
                     ingested_media_files += 1
 
-        # Mark as seen
+        # Mark post as processed
         seen_cache.add(post_hash)
         save_seen_cache(seen_cache)
-        print("      [✓] Successfully processed.\n")
-
-        # Politeness delay
-        time.sleep(1.5)
+        print(f"      [✓] Successfully processed.\n")
 
     print("=" * 65)
     print(f"🏁 COMPLETED: Processed {ingested_trends} trends ({ingested_media_files} total media files).")
     print("=" * 65)
+
 
 if __name__ == "__main__":
     run_ingestion()
