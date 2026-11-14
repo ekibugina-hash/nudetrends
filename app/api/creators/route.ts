@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminRequest } from '../../lib/auth';
-import { revalidatePath } from 'next/cache';
-import { readDb, writeDb, getCreators } from '../../lib/db';
+import { readDb, writeDb, getCreators, revalidateContent } from '../../lib/db';
 
 export async function GET() {
   try {
@@ -38,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Clear global cache so the site updates immediately
-    revalidatePath('/', 'layout');
+    revalidateContent();
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

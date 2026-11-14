@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { Video } from '../../../types';
-import { readDb, writeDb, s3 } from '../../../lib/db';
+import { readDb, writeDb, s3, revalidateContent } from '../../../lib/db';
 import { isAdminRequest } from '../../../lib/auth';
-import { revalidatePath } from 'next/cache';
 
 async function readVideosFromFile(): Promise<any[]> {
   return await readDb('videos.json');
@@ -93,7 +91,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    revalidatePath('/', 'layout');
+    revalidateContent();
 
     return NextResponse.json({
       success: true,

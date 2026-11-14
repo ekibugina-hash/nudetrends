@@ -2,7 +2,7 @@ import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } fr
 import fs from 'fs/promises';
 import path from 'path';
 import { Video, Creator } from '../types';
-import { unstable_cache } from 'next/cache';
+import { unstable_cache, revalidateTag, revalidatePath } from 'next/cache';
 
 // ─── Shared S3 Client ──────────────────────────────────────────────────────
 // Exported so other modules (delete, presigned-url) can reuse it without
@@ -242,7 +242,7 @@ async function getMergedVideosUncached(): Promise<Video[]> {
           creator,
           views: formatViews(size),
           time: formatRelativeTime(lastModified),
-          duration: isVideo ? '03:45' : 'IMAGE',
+          duration: isVideo ? 'VIDEO' : 'IMAGE',
           desc: '',
           initials: creator.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'PL',
           gradient: deterministicGradient(id),
@@ -328,7 +328,8 @@ export const getMergedVideos = unstable_cache(
 );
 
 async function getCreatorsUncached(): Promise<Creator[]> {
-  const mergedVideos = await getMergedVideosUncached();
+  // Reuse the cached media list instead of listing the bucket a second time.
+  const mergedVideos = await getMergedVideos();
   const dbCreators = await readDb('creators.json');
   const customThumbnails: Record<string, string> = {};
   const customBios: Record<string, string> = {};
@@ -396,3 +397,15 @@ export const getCreators = unstable_cache(
   ['creators-list'],
   { revalidate: 60, tags: ['creators'] }
 );
+
+/**
+ * Clears every cache entry that depends on media or creator data.
+ * Call this from admin API routes after a mutation so the public site
+ * reflects changes immediately instead of waiting for the 60s window.
+ */
+export function revalidateContent() {
+  // `expire: 0` makes the entries immediately invalid instead of merely stale.
+  revalidateTag('videos', { expire: 0 });
+  revalidateTag('creators', { expire: 0 });
+  revalidatePath('/', 'layout');
+}

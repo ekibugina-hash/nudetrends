@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readDb, writeDb } from '../../../lib/db';
+import { readDb, writeDb, revalidateContent } from '../../../lib/db';
 import { isAdminRequest } from '../../../lib/auth';
-import { revalidatePath } from 'next/cache';
 
 async function readVideosFromFile(): Promise<any[]> {
   return await readDb('videos.json');
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     await writeVideosToFile(dbVideos);
-    revalidatePath('/', 'layout');
+    revalidateContent();
 
     return NextResponse.json({
       success: true,

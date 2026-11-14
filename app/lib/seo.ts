@@ -1,4 +1,12 @@
-export const SITE_URL = process.env.APP_URL || 'https://nudetrends.afrozex.com';
+/**
+ * Canonical site URL used by metadata, schema, sitemap and redirects.
+ * `NEXT_PUBLIC_SITE_URL` is still honoured for backwards compatibility with
+ * older deployments, but `APP_URL` is the documented variable.
+ */
+export const SITE_URL =
+  process.env.APP_URL ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'https://nudetrends.afrozex.com';
 
 /**
  * Ensures an image or page URL is an absolute URL for OpenGraph and Schema.org.

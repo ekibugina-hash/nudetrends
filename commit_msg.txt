@@ -1,0 +1,1 @@
+feat: add x-api-key and bearer token auth support for automated ingestion

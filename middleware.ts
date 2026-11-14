@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { SITE_URL } from './app/lib/seo';
 
-const CANONICAL_HOST = 'nudetrends.afrozex.com';
+function canonicalHost(): string {
+  try {
+    return new URL(SITE_URL).host;
+  } catch {
+    return 'nudetrends.afrozex.com';
+  }
+}
+
+const CANONICAL_HOST = canonicalHost();
 
 export function middleware(request: NextRequest) {
   const host = request.headers.get('host') || '';
-  const { pathname, search } = request.nextUrl;
 
   // 1. Strip www prefix — 301 permanent redirect to non-www canonical
   if (host.startsWith('www.')) {

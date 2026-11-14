@@ -1,15 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { 
   Search, 
   CheckCircle2, 
   ArrowLeft, 
   Share2, 
-  Menu, 
-  X,
   ChevronDown,
   Flame,
   HelpCircle,
@@ -33,13 +30,9 @@ export default function CreatorClient({
   thumbnailUrl?: string;
   relatedCreators?: Creator[];
 }) {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Mobile sidebar
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Notification
   const [notification, setNotification] = useState<string | null>(null);
@@ -186,13 +179,6 @@ export default function CreatorClient({
             </button>
           </div>
 
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="md:hidden p-2 text-amber-400 hover:text-amber-300 bg-stone-900 border border-amber-500/30 hover:border-amber-400/60 rounded-lg transition"
-            title="Open Navigation"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
         </div>
       </header>
 
@@ -311,7 +297,7 @@ export default function CreatorClient({
                   <div className="min-w-0 flex-1">
                     {videos.length > 1 && (
                       <span className="text-[10px] font-mono text-orange-400 uppercase tracking-wider block font-bold">
-                        Media ${index + 1} of ${videos.length} {vid.type === 'image' ? '• Photo' : '• Video'}
+                        Media {index + 1} of {videos.length} {vid.type === 'image' ? '• Photo' : '• Video'}
                       </span>
                     )}
                     <h2 className="text-base sm:text-lg font-black text-white tracking-tight leading-snug mt-0.5">

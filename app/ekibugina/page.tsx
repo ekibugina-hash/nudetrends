@@ -1,18 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
   Trash2, 
   PlusCircle, 
-  UploadCloud, 
   CheckCircle2, 
   AlertCircle,
-  Eye, 
   Settings, 
-  FileText, 
   Image as ImageIcon, 
   Video as VideoIcon, 
   Layout, 
@@ -26,7 +23,7 @@ import {
 import { Video, Creator } from '../types';
 
 // Reusable video thumbnail that properly seeks to 20s
-function AdminVideoThumb({ videoUrl, title, gradient }: { videoUrl: string; title: string; gradient?: string }) {
+function AdminVideoThumb({ videoUrl, gradient }: { videoUrl: string; gradient?: string }) {
   return (
     <>
       <div className="absolute inset-0 w-full h-full" style={{ backgroundImage: gradient }} />
@@ -95,13 +92,11 @@ export default function AdminPage() {
   const [thumbnailSource, setThumbnailSource] = useState<'none' | 'file' | 'url'>('none');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [mediaThumbnailUrl, setMediaThumbnailUrl] = useState('');
-  const [thumbnailUploading, setThumbnailUploading] = useState(false);
 
   // Thumbnail states for editing
   const [editThumbnailSource, setEditThumbnailSource] = useState<'none' | 'file' | 'url'>('none');
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
   const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
-  const [editThumbnailUploading, setEditThumbnailUploading] = useState(false);
 
   // Attachments states for editing
   const [newAttachmentType, setNewAttachmentType] = useState<'video' | 'image'>('video');
@@ -369,7 +364,6 @@ export default function AdminPage() {
       
       let finalThumbnailUrl = targetVid?.thumbnailUrl || '';
       if (editThumbnailSource === 'file' && editThumbnailFile) {
-        setEditThumbnailUploading(true);
         triggerNotification('Uploading custom thumbnail to R2...');
         try {
           const res = await fetch('/api/get-presigned-url', {
@@ -389,10 +383,7 @@ export default function AdminPage() {
         } catch (err: any) {
           console.error(err);
           triggerNotification(`Thumbnail upload failed: ${err.message}`, 'error');
-          setEditThumbnailUploading(false);
           return;
-        } finally {
-          setEditThumbnailUploading(false);
         }
       } else if (editThumbnailSource === 'url') {
         finalThumbnailUrl = editThumbnailUrl.trim();
@@ -620,7 +611,6 @@ export default function AdminPage() {
 
     let finalThumbnailUrl = '';
     if (thumbnailSource === 'file' && thumbnailFile) {
-      setThumbnailUploading(true);
       triggerNotification('Uploading custom thumbnail to R2...');
       try {
         const res = await fetch('/api/get-presigned-url', {
@@ -640,10 +630,7 @@ export default function AdminPage() {
       } catch (err: any) {
         console.error(err);
         triggerNotification(`Thumbnail upload failed: ${err.message}`, 'error');
-        setThumbnailUploading(false);
         return;
-      } finally {
-        setThumbnailUploading(false);
       }
     } else if (thumbnailSource === 'url') {
       finalThumbnailUrl = mediaThumbnailUrl.trim();
@@ -656,7 +643,7 @@ export default function AdminPage() {
       creator: mediaCreator.trim() || 'Admin Upload',
       views: '0 views',
       time: 'Just now',
-      duration: mediaType === 'video' ? '05:00' : 'IMAGE',
+      duration: mediaType === 'video' ? 'VIDEO' : 'IMAGE',
       desc: mediaDesc.trim() || 'No description provided.',
       initials: (mediaCreator.trim() || 'AU').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
       gradient: `linear-gradient(135deg, ${['#2b1201', '#1c0a00', '#140700', '#2d0f00', '#2c0e00', '#1d0701'][Math.floor(Math.random() * 6)]}, #000000)`,
@@ -839,7 +826,7 @@ export default function AdminPage() {
                         <img src={vid.thumbnailUrl} alt={vid.title} className="w-full h-full object-cover" />
                       ) : vid.videoUrl ? (
                         <div className="relative w-full h-full">
-                          <AdminVideoThumb videoUrl={vid.videoUrl} title={vid.title} gradient={vid.gradient} />
+                          <AdminVideoThumb videoUrl={vid.videoUrl} gradient={vid.gradient} />
                         </div>
                       ) : (
                         <div className="w-full h-full" style={{ backgroundImage: vid.gradient }} />

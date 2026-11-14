@@ -47,6 +47,7 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    setBuffered(0);
     setError(null);
     setIsQualityOpen(false);
     setShowDownloadMenu(false);
@@ -149,19 +150,25 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
 
   const handleScreenshot = () => {
     if (!videoRef.current) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth || 1280;
-    canvas.height = videoRef.current.videoHeight || 720;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const link = document.createElement('a');
-      link.download = `${video.title || 'screenshot'}-${Math.floor(currentTime)}s.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth || 1280;
+      canvas.height = videoRef.current.videoHeight || 720;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const link = document.createElement('a');
+        link.download = `${video.title || 'screenshot'}-${Math.floor(currentTime)}s.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
+      setScreenshotFlash(true);
+      setTimeout(() => setScreenshotFlash(false), 300);
+    } catch (err) {
+      // Cross-origin media without CORS headers taints the canvas; the browser
+      // throws instead of returning image data. Fail quietly.
+      console.warn('Screenshot unavailable for this stream:', err);
     }
-    setScreenshotFlash(true);
-    setTimeout(() => setScreenshotFlash(false), 300);
   };
 
   const handleDownload = (quality: string) => {
@@ -179,6 +186,14 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+      // Multiple players can be mounted on a trend page. Only let the player
+      // the user is interacting with respond to global shortcuts.
+      const el = containerRef.current;
+      if (!el) return;
+      const isEngaged = el.matches(':hover') || el.contains(document.activeElement);
+      if (!isEngaged) return;
+
       if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); togglePlay(); }
       else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMute(); }
       else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
@@ -202,7 +217,8 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-stone-800 shadow-2xl group select-none"
+      tabIndex={0}
+      className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-stone-800 shadow-2xl group select-none outline-none"
       style={{ boxShadow: '0 0 40px rgba(0,0,0,0.8)' }}
     >
       {/* Screenshot flash overlay */}
@@ -216,10 +232,11 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
           ref={videoRef}
           src={video.videoUrl}
           poster={video.thumbnailUrl || undefined}
+          preload="metadata"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={() => setIsPlaying(false)}
-          onError={() => setError('Error loading stream. Check your network or the R2 stream URL.')}
+          onError={() => { setIsPlaying(false); setError('Error loading stream. Check your network or the R2 stream URL.'); }}
           className="w-full h-full object-contain cursor-pointer"
           onClick={togglePlay}
         />

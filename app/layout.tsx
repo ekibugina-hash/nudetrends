@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { PostHogProvider } from "./components/PostHogProvider";
-
-const SITE_URL = "https://nudetrends.afrozex.com";
+import { SITE_URL } from "./lib/seo";
 
 export const metadata: Metadata = {
   title: "NudeTrends — Premium Trending Videos & Nudes Uganda",

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, TrendingUp, ImageIcon, Send } from 'lucide-react';
+import { Home, TrendingUp, ImageIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function NotFound() {

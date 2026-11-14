@@ -26,8 +26,8 @@ export default function CommentsSection({ videoId }: CommentsSectionProps) {
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.comments) {
-          // Show newest first
-          setComments([...data.comments].reverse());
+          // The API already returns newest-first (new comments are unshifted).
+          setComments(data.comments);
         }
       })
       .catch(() => setError("Failed to load comments."))

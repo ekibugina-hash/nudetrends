@@ -1,4 +1,4 @@
-import { getCreators, getMergedVideos } from './lib/db';
+import { getCreators } from './lib/db';
 import HomeClient from './HomeClient';
 import { absoluteUrl, SITE_URL } from './lib/seo';
 
@@ -6,10 +6,9 @@ import { absoluteUrl, SITE_URL } from './lib/seo';
 export const revalidate = 60;
 
 export default async function Page() {
-  const [initialCreators, initialVideos] = await Promise.all([
-    getCreators(),
-    getMergedVideos()
-  ]);
+  // getCreators() already reads and merges the R2 media list internally, so the
+  // homepage no longer needs to fetch every video just to render the catalog.
+  const initialCreators = await getCreators();
 
   const itemListSchema = {
     '@context': 'https://schema.org',
@@ -67,7 +66,7 @@ export default async function Page() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqSchema) }}
       />
-      <HomeClient initialCreators={initialCreators} initialVideos={initialVideos} />
+      <HomeClient initialCreators={initialCreators} />
     </>
   );
 }

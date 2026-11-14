@@ -5,7 +5,11 @@ dist/
 coverage/
 .DS_Store
 *.log
+*.tsbuildinfo
 .env*
 !.env.example
 next-env.d.ts
 .env.local
+
+# Generated bucket listings and debug output
+r2-files.txt

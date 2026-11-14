@@ -1,10 +1,11 @@
 import { getMergedVideos, getCreators } from '../lib/db';
+import { SITE_URL } from '../lib/seo';
 
 export const revalidate = 3600; // Regenerate sitemap at most once per hour
 
 export async function GET() {
   try {
-    const appUrl = process.env.APP_URL || 'https://nudetrends.afrozex.com';
+    const appUrl = SITE_URL;
 
     // Fetch both trends and merged videos
     const [creators, mergedVideos] = await Promise.all([

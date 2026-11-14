@@ -5,18 +5,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Search,
-  CheckCircle2,
   Menu,
   X,
   Play,
   Video as VideoIcon,
   Image as ImageIcon,
   Compass,
-  ChevronLeft,
-  ChevronRight,
   Flame,
 } from 'lucide-react';
-import { Creator, Video } from './types';
+import { Creator } from './types';
 
 // ─── Fast Thumbnail Component (NO heavy video elements on home) ───────────────
 function FastTopicThumb({
@@ -107,7 +104,7 @@ function TopicTrendCard({
   isRecent?: boolean;
 }) {
   const isImage = item.firstVideo?.type === 'image';
-  const duration = item.firstVideo?.duration || (isImage ? 'PHOTO' : '03:45');
+  const duration = item.firstVideo?.duration || (isImage ? 'PHOTO' : 'VIDEO');
   const interestingTitles = item.firstVideo?.interestingTitles || [];
   const initials = item.name.substring(0, 3).toUpperCase();
 
@@ -308,39 +305,23 @@ function HeroSliderWidget({
   );
 }
 
-// ─── Popular Tags Cloud ───────────────────────────────────────────────────────
-const POPULAR_TAGS = [
-  '#All',
-  '#Kampala',
-  '#Campus',
-  '#TikTok',
-  '#Snapchat',
-  '#ViralLeaks',
-  '#Sextapes',
-  '#Exclusive',
-];
-
 // ─── Home Client Main ─────────────────────────────────────────────────────────
 export default function HomeClient({
   initialCreators = [],
 }: {
   initialCreators?: Creator[];
-  initialVideos?: Video[];
 }) {
   const router = useRouter();
   const [items, setItems] = useState<Creator[]>(initialCreators);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'latest' | 'videos' | 'photos'>('latest');
-  const [selectedTag, setSelectedTag] = useState<string>('#All');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
 
   // Sidebar
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // Notification
-  const [notification, setNotification] = useState<string | null>(null);
 
   // Ads: Banner reduced to half desktop size
   const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>({
@@ -358,6 +339,19 @@ export default function HomeClient({
     }
   }, [initialCreators]);
 
+  // Apply deep-link filters once on mount (/?q=... and /?category=...).
+  // The catalog itself is still server-rendered; this only narrows the view.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get('q') || params.get('search');
+    const category = (params.get('category') || params.get('tab') || '').toLowerCase();
+
+    if (query) setSearchQuery(query);
+    if (category.includes('photo') || category.includes('nude')) setActiveTab('photos');
+    else if (category.includes('video') || category.includes('trending')) setActiveTab('videos');
+  }, []);
+
   useEffect(() => {
     const fetchAds = async () => {
       try {
@@ -365,33 +359,37 @@ export default function HomeClient({
         if (res.ok) {
           const data = await res.json();
           if (data.ads?.banner) setBannerAd(data.ads.banner);
-          if (data.ads?.popup) {
-            setPopupAd(data.ads.popup);
-            if (data.ads?.popup.enabled && data.ads.popup.imageUrl) {
-              setTimeout(() => setShowPopupModal(true), 7000);
-            }
-          }
+          if (data.ads?.popup) setPopupAd(data.ads.popup);
         }
       } catch {}
     };
     fetchAds();
   }, []);
 
+  // Delay the popup so it does not block the initial render, and clean the
+  // timer up if the component unmounts first.
+  useEffect(() => {
+    if (!popupAd?.enabled || !popupAd.imageUrl) return;
+    const timer = setTimeout(() => setShowPopupModal(true), 7000);
+    return () => clearTimeout(timer);
+  }, [popupAd]);
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, activeTab, selectedTag]);
+  }, [searchQuery, activeTab]);
 
   const handleOpenTopic = (topicName: string) => {
     router.push(`/creator/${encodeURIComponent(topicName)}`);
   };
 
-  // Filter pipeline combining Search, Tabs, and Tags
+  // Filter pipeline combining search and the bottom-nav tabs
   const filteredItems = items.filter((item) => {
+    const needle = searchQuery.toLowerCase();
     const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.bio || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.firstVideo?.desc || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.firstVideo?.interestingTitles || []).some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      item.name.toLowerCase().includes(needle) ||
+      (item.bio || '').toLowerCase().includes(needle) ||
+      (item.firstVideo?.desc || '').toLowerCase().includes(needle) ||
+      (item.firstVideo?.interestingTitles || []).some((t) => t.toLowerCase().includes(needle));
 
     const matchesTab =
       activeTab === 'latest'
@@ -400,15 +398,7 @@ export default function HomeClient({
         ? item.firstVideo?.type !== 'image'
         : item.firstVideo?.type === 'image';
 
-    const matchesTag =
-      selectedTag === '#All'
-        ? true
-        : item.name.toLowerCase().includes(selectedTag.replace('#', '').toLowerCase()) ||
-          (item.bio || '').toLowerCase().includes(selectedTag.replace('#', '').toLowerCase()) ||
-          (item.firstVideo?.desc || '').toLowerCase().includes(selectedTag.replace('#', '').toLowerCase()) ||
-          (item.firstVideo?.interestingTitles || []).some(t => t.toLowerCase().includes(selectedTag.replace('#', '').toLowerCase()));
-
-    return matchesSearch && matchesTab && matchesTag;
+    return matchesSearch && matchesTab;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
@@ -422,14 +412,6 @@ export default function HomeClient({
 
   return (
     <div className="min-h-screen bg-[#090909] text-stone-200">
-      {/* Notification Toast */}
-      {notification && (
-        <div className="fixed bottom-6 right-6 z-[3000] bg-orange-600 border border-orange-500 text-stone-950 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-slideUp font-bold text-xs">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{notification}</span>
-        </div>
-      )}
-
       {/* Popup Ad */}
       {showPopupModal && popupAd?.enabled && popupAd?.imageUrl && (
         <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
@@ -588,6 +570,7 @@ export default function HomeClient({
         <div className="w-full flex items-center gap-2">
           <div className="relative flex-1">
             <input
+              ref={mobileSearchRef}
               type="text"
               placeholder="Search trends, models, or tags..."
               value={searchQuery}
@@ -596,10 +579,14 @@ export default function HomeClient({
             />
           </div>
           <button
-            onClick={() => setSearchQuery('')}
+            onClick={() => {
+              if (searchQuery) setSearchQuery('');
+              else mobileSearchRef.current?.focus();
+            }}
+            aria-label={searchQuery ? 'Clear search' : 'Focus search'}
             className="bg-orange-500 text-stone-950 px-3 py-2 rounded-lg flex items-center justify-center transition-colors flex-shrink-0"
           >
-            <Search className="w-3.5 h-3.5" />
+            {searchQuery ? <X className="w-3.5 h-3.5" /> : <Search className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>

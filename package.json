@@ -1,13 +1,12 @@
 {
-  "name": "react-example",
+  "name": "nude-trends",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1066.0",
@@ -15,7 +14,6 @@
     "@tailwindcss/postcss": "^4.3.0",
     "dotenv": "^17.2.3",
     "lucide-react": "^0.546.0",
-    "motion": "^12.23.24",
     "next": "^16.2.9",
     "postcss": "^8.5.15",
     "posthog-js": "^1.386.6",
