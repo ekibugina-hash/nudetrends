@@ -1,0 +1,36 @@
+name: Automated Content Ingestion
+
+on:
+  schedule:
+    # Runs every 2 hours automatically
+    - cron: '0 */2 * * *'
+  # Allows you to trigger the ingestion manually from the GitHub Actions tab anytime!
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Ingestion Engine
+        env:
+          API_BASE: "https://nudetrends.afrozex.com"
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          SOURCE_URL: "https://nodoleaks.com"
+        run: |
+          python scripts/ingest.py
+
+      - name: Commit updated seen cache
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Auto-Ingest"
+          git add scripts/seen_cache.json || true
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: update ingestion seen cache [skip ci]"
+          git push || true
