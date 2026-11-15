@@ -385,6 +385,8 @@ async function getCreatorsUncached(): Promise<Creator[]> {
       return {
         ...creator,
         videoCount: videos.length,
+        hasVideos: videos.some((v: any) => v.type !== 'image'),
+        hasImages: videos.some((v: any) => v.type === 'image'),
         latestUpload,
       };
     })

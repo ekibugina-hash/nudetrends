@@ -243,12 +243,16 @@ def scrape_isolated_post_media(post_url: str, post_title: str) -> dict:
     raw_imgs = re.findall(rf'["\'](https?://[^"\']*/nudes/{re.escape(primary_folder)}/[^"\']*\.(?:jpg|jpeg|webp|png|avif))["\']', html, re.I)
     clean_imgs = [i.split('&quot;')[0].split('&#x3D;')[0] for i in raw_imgs]
     
-    # Priority order for photos:
-    # 1. main.webp / main.avif / main.jpg
-    # 2. 1.jpg / 1.avif / 1.webp
-    # 3. others
+    def sort_photo_key(p: str):
+        m = re.search(r'/(\d+)\.[a-zA-Z0-9]+$', p)
+        if m:
+            return (0, int(m.group(1)))
+        if 'main' in p.lower():
+            return (1, 0)
+        return (2, p)
+
     photos = list(dict.fromkeys(clean_imgs))
-    photos.sort(key=lambda x: 0 if 'main' in x.lower() else (1 if '/1.' in x else 2))
+    photos.sort(key=sort_photo_key)
 
     if not videos and not photos:
         return None
@@ -256,8 +260,9 @@ def scrape_isolated_post_media(post_url: str, post_title: str) -> dict:
     # Trend name derived from folder
     trend_name = " ".join([w.title() for w in primary_folder.replace("-", " ").split()])
 
-    # Cover photo MUST be from this exact folder
-    cover_photo = photos[0] if photos else f"https://noodles.nodoleaks.com/nudes/{primary_folder}/1.jpg"
+    # Cover photo: prefer main.webp/avif if available, otherwise first photo
+    main_photo = next((p for p in photos if 'main' in p.lower()), None)
+    cover_photo = main_photo or (photos[0] if photos else f"https://noodles.nodoleaks.com/nudes/{primary_folder}/1.jpg")
 
     return {
         "trend_name": trend_name,
@@ -363,29 +368,29 @@ def run_isolated_ingestion():
             if publish_video(video_payload):
                 ingested_media_files += 1
 
-        # If standalone photos
-        if total_videos == 0 and total_photos > 0:
-            for p_idx, p_url in enumerate(media["photos"][:4]):
-                photo_title = f"{media['title']} (Photo {p_idx + 1})" if total_photos > 1 else media['title']
-                item_id = slugify(f"{trend_name}-p{p_idx + 1}-{hashlib.md5(p_url.encode()).hexdigest()[:6]}")
-                photo_payload = {
-                    "id": item_id,
-                    "title": photo_title,
-                    "creator": trend_name,
-                    "thumbnailUrl": p_url,
-                    "imageUrl": p_url,
-                    "type": "image",
-                    "duration": "PHOTO",
-                    "views": f"{round(1.5 + (hash(photo_title) % 60) / 10, 1)}k views",
-                    "time": "Just now",
-                    "desc": media["desc"],
-                    "category": "Trending",
-                    "interestingTitles": media["tags"],
-                    "uploadedAt": int(time.time() * 1000)
-                }
-                print(f"      --> Photo: {photo_title}")
-                if publish_video(photo_payload):
-                    ingested_media_files += 1
+        # 2. Publish all photos in order (Photo 1, Photo 2, ...)
+        for p_idx, p_url in enumerate(media["photos"]):
+            part_suffix = f" (Photo {p_idx + 1})" if total_photos > 1 else " (Photo)"
+            photo_title = f"{media['title']}{part_suffix}"
+            item_id = slugify(f"{trend_name}-p{p_idx + 1}-{hashlib.md5(p_url.encode()).hexdigest()[:6]}")
+            photo_payload = {
+                "id": item_id,
+                "title": photo_title,
+                "creator": trend_name,
+                "thumbnailUrl": p_url,
+                "imageUrl": p_url,
+                "type": "image",
+                "duration": "PHOTO",
+                "views": f"{round(1.5 + (hash(photo_title) % 60) / 10, 1)}k views",
+                "time": "Just now",
+                "desc": media["desc"],
+                "category": "Photos",
+                "interestingTitles": media["tags"],
+                "uploadedAt": int(time.time() * 1000) - ((total_videos + p_idx) * 1000)
+            }
+            print(f"      --> Photo {p_idx + 1}: {p_url.split('/')[-1]}")
+            if publish_video(photo_payload):
+                ingested_media_files += 1
 
         seen_cache.add(hashlib.md5(post_url.encode()).hexdigest())
         print("      [✓] Processed successfully.\n")

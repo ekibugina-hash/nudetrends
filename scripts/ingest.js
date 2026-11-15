@@ -237,15 +237,21 @@ function extractMedia(html, postMeta, postUrl) {
   let photos = Array.from(html.matchAll(imgRegex)).map((m) => m[1].split('&quot;')[0].split('&#x3D;')[0]);
   photos = Array.from(new Set(photos));
   photos.sort((a, b) => {
-    const aMain = a.toLowerCase().includes('main') ? 0 : (a.includes('/1.') ? 1 : 2);
-    const bMain = b.toLowerCase().includes('main') ? 0 : (b.includes('/1.') ? 1 : 2);
-    return aMain - bMain;
+    const ma = a.match(/\/(\d+)\.[a-zA-Z0-9]+$/);
+    const mb = b.match(/\/(\d+)\.[a-zA-Z0-9]+$/);
+    if (ma && mb) return parseInt(ma[1], 10) - parseInt(mb[1], 10);
+    if (ma) return -1;
+    if (mb) return 1;
+    if (a.toLowerCase().includes('main')) return -1;
+    if (b.toLowerCase().includes('main')) return 1;
+    return a.localeCompare(b);
   });
 
   if (videos.length === 0 && photos.length === 0) return null;
 
   const trendName = primaryFolder.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  const coverPhoto = photos[0] || `https://noodles.nodoleaks.com/nudes/${primaryFolder}/1.jpg`;
+  const mainPhoto = photos.find((p) => p.toLowerCase().includes('main'));
+  const coverPhoto = mainPhoto || photos[0] || `https://noodles.nodoleaks.com/nudes/${primaryFolder}/1.jpg`;
 
   return {
     trendName,
@@ -353,6 +359,34 @@ async function run() {
       };
 
       console.log(`      --> Publishing Video: ${vidTitle.slice(0, 55)}...`);
+      if (await publishVideo(payload)) ingestedMedia++;
+    }
+
+    // 3. Publish all photos
+    for (let pIdx = 0; pIdx < media.photos.length; pIdx++) {
+      const pUrl = media.photos[pIdx];
+      const partSuffix = media.photos.length > 1 ? ` (Photo ${pIdx + 1})` : ' (Photo)';
+      const photoTitle = `${p.title}${partSuffix}`;
+      const hash = crypto.createHash('md5').update(pUrl).digest('hex').slice(0, 6);
+      const itemId = slugify(`${media.trendName}-p${pIdx + 1}-${hash}`);
+
+      const payload = {
+        id: itemId,
+        title: photoTitle,
+        creator: media.trendName,
+        thumbnailUrl: pUrl,
+        imageUrl: pUrl,
+        type: 'image',
+        duration: 'PHOTO',
+        views: `${(1.5 + (p.title.length % 50) / 10).toFixed(1)}k views`,
+        time: 'Just now',
+        desc: media.desc,
+        category: 'Photos',
+        interestingTitles: media.tags,
+        uploadedAt: Date.now() - ((media.videos.length + pIdx) * 1000),
+      };
+
+      console.log(`      --> Publishing Photo: ${photoTitle.slice(0, 55)}...`);
       if (await publishVideo(payload)) ingestedMedia++;
     }
 

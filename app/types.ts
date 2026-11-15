@@ -28,6 +28,8 @@ export interface Creator {
   videoCount?: number;     // Total videos under this topic
   firstVideo?: Video;      // First video — used for direct play when hasTopicPage is false
   bio?: string;            // Admin configured biography / description
+  hasVideos?: boolean;
+  hasImages?: boolean;
 }
 
 export interface MediaAttachment {

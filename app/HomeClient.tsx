@@ -395,8 +395,8 @@ export default function HomeClient({
       activeTab === 'latest'
         ? true
         : activeTab === 'videos'
-        ? item.firstVideo?.type !== 'image'
-        : item.firstVideo?.type === 'image';
+        ? (item.hasVideos ?? (item.firstVideo?.type !== 'image'))
+        : (item.hasImages ?? (item.firstVideo?.type === 'image'));
 
     return matchesSearch && matchesTab;
   });
