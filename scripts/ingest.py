@@ -314,19 +314,34 @@ def run_isolated_ingestion():
         ingested_trends += 1
 
         # Publish Videos strictly in order (Part 1, Part 2, ...)
+        used_thumbs = set()
         for v_idx, v_url in enumerate(media["videos"]):
             part_suffix = f" (Part {v_idx + 1})" if total_videos > 1 else ""
             vid_title = f"{media['title']}{part_suffix}"
             item_id = slugify(f"{trend_name}-v{v_idx + 1}-{hashlib.md5(v_url.encode()).hexdigest()[:6]}")
 
-            # Try to match video number with photo number in SAME folder, otherwise use cover_photo
+            # 1. Match exact video number with photo number in SAME folder (e.g. 1.mp4 -> 1.jpg)
             v_num = re.search(r'/(\d+)\.mp4', v_url)
-            matched_thumb = cover_photo
+            matched_thumb = ""
             if v_num:
                 num_str = f"/{v_num.group(1)}."
-                matching = [ph for ph in media["photos"] if num_str in ph]
+                matching = [ph for ph in media["photos"] if num_str in ph and ph not in used_thumbs]
                 if matching:
                     matched_thumb = matching[0]
+
+            # 2. If not matched by number, take any other unused photo in this trend's folder
+            if not matched_thumb:
+                unused_photos = [ph for ph in media["photos"] if ph not in used_thumbs]
+                if unused_photos:
+                    matched_thumb = unused_photos[0]
+
+            # 3. For Part 1 only, if no thumb used yet, use cover photo
+            if v_idx == 0 and not matched_thumb and cover_photo not in used_thumbs:
+                matched_thumb = cover_photo
+
+            # Mark this thumb as used so NO OTHER video in this trend repeats it!
+            if matched_thumb:
+                used_thumbs.add(matched_thumb)
 
             video_payload = {
                 "id": item_id,

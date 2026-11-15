@@ -60,6 +60,9 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
+      if (videoRef.current.currentTime <= 0.002) {
+        videoRef.current.currentTime = 0;
+      }
       videoRef.current.play()
         .then(() => setIsPlaying(true))
         .catch((e) => {
@@ -230,9 +233,10 @@ export default function VideoPlayer({ video }: VideoPlayerProps) {
       {hasRealStream ? (
         <video
           ref={videoRef}
-          src={video.videoUrl}
+          src={video.videoUrl ? (video.videoUrl.includes('#') ? video.videoUrl : `${video.videoUrl}#t=0.001`) : undefined}
           poster={video.thumbnailUrl || undefined}
           preload="metadata"
+          playsInline
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={() => setIsPlaying(false)}

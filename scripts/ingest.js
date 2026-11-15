@@ -306,13 +306,35 @@ async function run() {
     ingestedTrends++;
 
     // 2. Publish all videos
+    const usedThumbs = new Set();
     for (let vIdx = 0; vIdx < media.videos.length; vIdx++) {
       const vUrl = media.videos[vIdx];
       const partSuffix = media.videos.length > 1 ? ` (Part ${vIdx + 1})` : '';
       const vidTitle = `${p.title}${partSuffix}`;
       const hash = crypto.createHash('md5').update(vUrl).digest('hex').slice(0, 6);
       const itemId = slugify(`${media.trendName}-v${vIdx + 1}-${hash}`);
-      const vThumb = media.photos[vIdx] || media.coverPhoto;
+
+      // 1. Check if exact video number matches photo
+      const vNumMatch = vUrl.match(/\/(\d+)\.mp4/);
+      let vThumb = '';
+      if (vNumMatch) {
+        const numStr = `/${vNumMatch[1]}.`;
+        const matched = media.photos.find((ph) => ph.includes(numStr) && !usedThumbs.has(ph));
+        if (matched) vThumb = matched;
+      }
+
+      // 2. Or take any unused photo from this trend
+      if (!vThumb) {
+        const unused = media.photos.find((ph) => !usedThumbs.has(ph));
+        if (unused) vThumb = unused;
+      }
+
+      // 3. For Part 1 only, if no thumb used yet, use coverPhoto
+      if (vIdx === 0 && !vThumb && !usedThumbs.has(media.coverPhoto)) {
+        vThumb = media.coverPhoto;
+      }
+
+      if (vThumb) usedThumbs.add(vThumb);
 
       const payload = {
         id: itemId,
