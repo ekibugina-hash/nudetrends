@@ -19,7 +19,35 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const API_BASE = (process.env.API_BASE || 'https://nudetrends.afrozex.com').replace(/\/+$/, '');
-const ADMIN_SECRET = process.env.ADMIN_SECRET || '';
+const ADMIN_SECRET = process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || 'Badman256.';
+let SESSION_COOKIE = '';
+
+async function authenticate() {
+  if (DRY_RUN) return true;
+  const passcode = ADMIN_SECRET || process.env.ADMIN_PASSWORD || 'Badman256.';
+  const loginUrl = `${API_BASE}/api/auth/login`;
+  try {
+    const res = await fetch(loginUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': HEADERS['User-Agent'] },
+      body: JSON.stringify({ password: passcode }),
+    });
+    const setCookie = res.headers.get('set-cookie');
+    if (setCookie && setCookie.includes('admin_session=')) {
+      const parts = setCookie.split(';');
+      for (const p of parts) {
+        if (p.trim().startsWith('admin_session=')) {
+          SESSION_COOKIE = p.trim();
+          console.log('[✓] Authenticated successfully with live site as Admin.');
+          return true;
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[!] Authentication notice:', e.message);
+  }
+  return false;
+}
 const SOURCE_URL = (process.env.SOURCE_URL || 'https://nodoleaks.com').replace(/\/+$/, '');
 const DRY_RUN = process.argv.includes('--dry-run');
 
@@ -108,6 +136,7 @@ async function publishCreator(name, thumbnailUrl, bio) {
     'User-Agent': HEADERS['User-Agent'],
   };
   if (ADMIN_SECRET) headers['x-api-key'] = ADMIN_SECRET;
+  if (SESSION_COOKIE) headers['Cookie'] = SESSION_COOKIE;
 
   try {
     const res = await fetch(url, {
@@ -138,6 +167,7 @@ async function publishVideo(payload) {
     'User-Agent': HEADERS['User-Agent'],
   };
   if (ADMIN_SECRET) headers['x-api-key'] = ADMIN_SECRET;
+  if (SESSION_COOKIE) headers['Cookie'] = SESSION_COOKIE;
 
   try {
     const res = await fetch(url, {

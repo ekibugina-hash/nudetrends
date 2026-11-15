@@ -102,14 +102,18 @@ export async function clearAdminSession(): Promise<void> {
  * Works in Edge middleware AND in Route Handlers (reads from NextRequest).
  */
 export async function isAdminRequest(req: NextRequest): Promise<boolean> {
-  // Support direct API key via header for automated ingestion scripts & cron jobs
+  // Support direct API key or Admin Password via header for automated ingestion scripts & cron jobs
   const apiKey = req.headers.get('x-api-key');
   const authHeader = req.headers.get('authorization');
-  try {
-    const secret = getSecret();
-    if (apiKey && safeCompare(apiKey, secret)) return true;
-    if (authHeader?.startsWith('Bearer ') && safeCompare(authHeader.slice(7), secret)) return true;
-  } catch {}
+  const candidate = apiKey || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null);
+  if (candidate) {
+    try {
+      const secret = getSecret();
+      if (safeCompare(candidate, secret)) return true;
+    } catch {}
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminPassword && safeCompare(candidate, adminPassword)) return true;
+  }
 
   const token = req.cookies.get(COOKIE_NAME)?.value;
   if (!token) return false;

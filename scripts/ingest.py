@@ -31,7 +31,35 @@ from datetime import datetime
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 API_BASE = os.getenv("API_BASE", "https://nudetrends.afrozex.com").rstrip("/")
-ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", os.getenv("ADMIN_PASSWORD", "Badman256."))
+
+SESSION_COOKIE = ""
+
+def authenticate() -> bool:
+    """Log in as admin to obtain session cookie for API requests."""
+    global SESSION_COOKIE
+    if DRY_RUN:
+        return True
+    passcode = ADMIN_SECRET or os.getenv("ADMIN_PASSWORD", "Badman256.")
+    login_url = f"{API_BASE}/api/auth/login"
+    try:
+        data = json.dumps({"password": passcode}).encode("utf-8")
+        req = urllib.request.Request(
+            login_url,
+            data=data,
+            headers={"Content-Type": "application/json", "User-Agent": HEADERS["User-Agent"]},
+        )
+        with urllib.request.urlopen(req, timeout=15) as res:
+            set_cookie = res.headers.get("Set-Cookie", "")
+            if "admin_session=" in set_cookie:
+                for part in set_cookie.split(";"):
+                    if part.strip().startswith("admin_session="):
+                        SESSION_COOKIE = part.strip()
+                        print("[✓] Authenticated successfully with live site as Admin.")
+                        return True
+    except Exception as e:
+        print(f"[!] Authentication notice: {e}")
+    return False
 SOURCE_URL = os.getenv("SOURCE_URL", "https://nodoleaks.com").rstrip("/")
 DRY_RUN = "--dry-run" in sys.argv
 
@@ -141,6 +169,8 @@ def publish_creator(name: str, thumbnail_url: str, bio: str = "") -> bool:
     headers = {"Content-Type": "application/json", "User-Agent": HEADERS["User-Agent"]}
     if ADMIN_SECRET:
         headers["x-api-key"] = ADMIN_SECRET
+    if SESSION_COOKIE:
+        headers["Cookie"] = SESSION_COOKIE
 
     try:
         data = json.dumps(payload).encode("utf-8")
@@ -162,6 +192,8 @@ def publish_video(video_data: dict) -> bool:
     headers = {"Content-Type": "application/json", "User-Agent": HEADERS["User-Agent"]}
     if ADMIN_SECRET:
         headers["x-api-key"] = ADMIN_SECRET
+    if SESSION_COOKIE:
+        headers["Cookie"] = SESSION_COOKIE
 
     try:
         data = json.dumps(video_data).encode("utf-8")
@@ -300,6 +332,9 @@ def run_ingestion():
 
     if not ADMIN_SECRET and not DRY_RUN:
         print("[!] WARNING: ADMIN_SECRET not set. Publishing might be blocked by authentication.")
+
+    if not DRY_RUN:
+        authenticate()
 
     seen_cache = load_seen_cache()
     print(f"[*] Loaded {len(seen_cache)} previously processed items from cache.")
