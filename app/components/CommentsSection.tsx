@@ -78,12 +78,12 @@ export default function CommentsSection({ videoId }: CommentsSectionProps) {
   return (
     <section className="mt-6 space-y-5">
       {/* Section Header */}
-      <div className="flex items-center gap-2 border-b border-stone-800 pb-3">
+      <div className="flex items-center gap-2 border-b border-stone-750 pb-3">
         <MessageSquare className="w-4 h-4 text-orange-500" />
-        <h3 className="text-sm font-extrabold text-stone-200 uppercase tracking-wide">
+        <h3 className="text-sm font-black text-white uppercase tracking-wider">
           Comments
         </h3>
-        <span className="ml-1 bg-stone-800 border border-stone-700 text-stone-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
+        <span className="ml-1 bg-stone-850 border border-stone-700 text-orange-400 text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full shadow-sm">
           {comments.length}
         </span>
       </div>
@@ -91,18 +91,18 @@ export default function CommentsSection({ videoId }: CommentsSectionProps) {
       {/* Comment Input Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-stone-900/50 border border-stone-800 rounded-xl p-4 space-y-3 backdrop-blur-sm"
+        className="bg-[#151515] border border-stone-750 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-xl ring-1 ring-white/5"
       >
         {/* Author name input */}
         <div className="flex items-center gap-2">
-          <User className="w-3.5 h-3.5 text-stone-500 flex-shrink-0" />
+          <User className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
           <input
             type="text"
             value={authorName}
             onChange={(e) => setAuthorName(e.target.value)}
             placeholder="Your name (optional)"
             maxLength={40}
-            className="flex-1 bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-orange-500 transition-colors"
+            className="flex-1 bg-black border border-stone-700 rounded-xl px-3.5 py-2 text-xs text-stone-100 placeholder:text-stone-500 focus:outline-none focus:border-orange-500 transition-colors"
           />
         </div>
 
@@ -113,12 +113,12 @@ export default function CommentsSection({ videoId }: CommentsSectionProps) {
           placeholder="Share your thoughts..."
           rows={3}
           maxLength={500}
-          className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-xs text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-orange-500 transition-colors resize-none leading-relaxed"
+          className="w-full bg-black border border-stone-700 rounded-xl px-3.5 py-2.5 text-xs text-stone-100 placeholder:text-stone-500 focus:outline-none focus:border-orange-500 transition-colors resize-none leading-relaxed"
         />
 
         {/* Footer row */}
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[10px] font-mono text-stone-600">
+          <span className="text-[10px] font-mono text-stone-400 font-bold">
             {commentText.length}/500
           </span>
           <div className="flex items-center gap-2">
@@ -133,12 +133,12 @@ export default function CommentsSection({ videoId }: CommentsSectionProps) {
             <button
               type="submit"
               disabled={posting || !commentText.trim()}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 text-[11px] font-black rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 text-xs font-black rounded-xl transition-colors shadow-lg shadow-orange-500/30"
             >
               {posting ? (
-                <span className="w-3 h-3 border border-stone-950 border-t-transparent rounded-full animate-spin" />
+                <span className="w-3 h-3 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Send className="w-3 h-3" />
+                <Send className="w-3 h-3 fill-current" />
               )}
               Post
             </button>
@@ -149,38 +149,38 @@ export default function CommentsSection({ videoId }: CommentsSectionProps) {
       {/* Comments List */}
       <div className="space-y-3">
         {loading ? (
-          <div className="flex items-center gap-2 py-4 text-stone-500">
-            <span className="w-4 h-4 border border-orange-500/50 border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center gap-2 py-4 text-stone-400">
+            <span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
             <span className="text-xs font-mono">Loading comments...</span>
           </div>
         ) : comments.length === 0 ? (
-          <div className="py-8 text-center border border-dashed border-stone-800 rounded-xl">
-            <MessageSquare className="w-8 h-8 text-stone-700 mx-auto mb-2" />
-            <p className="text-xs text-stone-500">No comments yet. Be the first!</p>
+          <div className="py-8 text-center border border-dashed border-stone-750 rounded-2xl bg-[#141414]">
+            <MessageSquare className="w-8 h-8 text-stone-600 mx-auto mb-2" />
+            <p className="text-xs text-stone-300 font-medium">No comments yet. Be the first!</p>
           </div>
         ) : (
           comments.map((c) => (
             <div
               key={c.id}
-              className="flex gap-3 bg-stone-900/30 border border-stone-800/60 rounded-xl p-3.5 hover:border-stone-700 transition-colors"
+              className="flex gap-3 bg-[#151515] border border-stone-750 rounded-2xl p-4 hover:border-orange-500/50 transition-colors shadow-md ring-1 ring-white/5"
             >
               {/* Avatar */}
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-600 to-orange-800 flex items-center justify-center flex-shrink-0 text-[10px] font-black text-stone-950 shadow">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0 text-xs font-black text-stone-950 shadow-md">
                 {c.avatarInitials || "??"}
               </div>
 
               {/* Content */}
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-stone-200">
+                  <span className="text-xs font-extrabold text-white">
                     {c.author}
                   </span>
-                  <span className="flex items-center gap-0.5 text-[9px] font-mono text-stone-600">
-                    <Clock className="w-2.5 h-2.5" />
+                  <span className="flex items-center gap-1 text-[10px] font-mono text-stone-400">
+                    <Clock className="w-3 h-3" />
                     {c.time}
                   </span>
                 </div>
-                <p className="text-xs text-stone-400 leading-relaxed break-words">
+                <p className="text-xs sm:text-sm text-stone-200 leading-relaxed break-words">
                   {c.text}
                 </p>
               </div>

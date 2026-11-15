@@ -194,21 +194,21 @@ export default function CreatorClient({
         </nav>
 
         {/* ── Topic Hero & Info Section ─────── */}
-        <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-stone-950/80 backdrop-blur-md">
+        <div className="relative rounded-3xl overflow-hidden border border-stone-700 shadow-2xl shadow-black/80 bg-[#141414] ring-1 ring-white/10 backdrop-blur-md">
 
           {/* Subtle Ambient Glow */}
-          <div className="absolute -top-24 -left-24 w-72 h-72 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-orange-600/15 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 p-5 sm:p-7 space-y-4">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-5 sm:gap-6 justify-between">
               {/* Left: Avatar/Cover + Details */}
               <div className="flex items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-stone-900 border-2 border-orange-500/40 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-lg shadow-orange-500/10 backdrop-blur-sm">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-black border-2 border-orange-500 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-xl shadow-orange-500/20 backdrop-blur-sm">
                   {thumbnailUrl ? (
                     <img
                       src={thumbnailUrl}
                       alt={`${creatorName} trend cover`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover brightness-[1.02]"
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-orange-600 to-stone-900 flex items-center justify-center text-white font-black text-xl font-mono">
@@ -220,11 +220,11 @@ export default function CreatorClient({
                 {/* Title & Badges */}
                 <div className="space-y-1.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-black text-orange-400 bg-orange-500/20 border border-orange-500/35 px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                      <Flame className="w-3 h-3 text-orange-400" />
+                    <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-mono font-black text-stone-950 bg-orange-500 border border-orange-400 px-3 py-1 rounded-full uppercase tracking-wider shadow-md shadow-orange-500/20">
+                      <Flame className="w-3.5 h-3.5 fill-current" />
                       Verified Trend
                     </span>
-                    <span className="text-[10px] font-mono text-stone-300 bg-black/60 px-2.5 py-0.5 rounded-md border border-white/10 backdrop-blur-sm">
+                    <span className="text-[10px] sm:text-xs font-mono font-bold text-stone-100 bg-stone-850 px-3 py-1 rounded-md border border-stone-700 shadow-sm">
                       {videos.length} media item{videos.length === 1 ? '' : 's'}
                     </span>
                   </div>
@@ -233,10 +233,10 @@ export default function CreatorClient({
                     {creatorName}
                   </h1>
 
-                  <div className="flex items-center gap-2 text-xs font-mono text-stone-300">
-                    <span className="text-orange-400 font-bold">{videoItems.length} Videos</span>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-mono text-stone-300">
+                    <span className="text-orange-400 font-black">{videoItems.length} Videos</span>
                     <span>•</span>
-                    <span className="text-orange-400 font-bold">{imageItems.length} Photos</span>
+                    <span className="text-orange-400 font-black">{imageItems.length} Photos</span>
                   </div>
                 </div>
               </div>
@@ -245,7 +245,7 @@ export default function CreatorClient({
               <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
                 <button
                   onClick={handleShare}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-stone-900/90 hover:bg-stone-850 text-stone-200 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition border border-stone-800 hover:border-stone-700 cursor-pointer shadow-md backdrop-blur-sm"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-stone-850 hover:bg-stone-800 text-stone-100 text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition border border-stone-700 hover:border-orange-500/70 cursor-pointer shadow-md backdrop-blur-sm"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span>Share Trend</span>
@@ -254,14 +254,14 @@ export default function CreatorClient({
             </div>
 
             {bio ? (
-              <div className="pt-3 border-t border-stone-850/80">
-                <p className="text-xs sm:text-sm text-stone-200 leading-relaxed bg-black/60 backdrop-blur-md p-4 rounded-xl border border-stone-850 whitespace-pre-wrap shadow-inner">
+              <div className="pt-3 border-t border-stone-750">
+                <p className="text-xs sm:text-sm text-stone-100 leading-relaxed bg-black/80 backdrop-blur-md p-4 rounded-xl border border-stone-750 whitespace-pre-wrap shadow-md">
                   {bio}
                 </p>
               </div>
             ) : (
-              <div className="pt-3 border-t border-stone-850/80">
-                <p className="text-xs text-stone-300 leading-relaxed bg-black/50 backdrop-blur-md p-3.5 rounded-xl border border-stone-850 shadow-inner">
+              <div className="pt-3 border-t border-stone-750">
+                <p className="text-xs sm:text-sm text-stone-200 leading-relaxed bg-black/70 backdrop-blur-md p-4 rounded-xl border border-stone-750 shadow-md">
                   Explore all verified leaks, viral videos, and exclusive photo content of <strong className="text-white">{creatorName}</strong> on NudeTrends Uganda. Stream high-definition media directly from your browser.
                 </p>
               </div>
@@ -274,15 +274,15 @@ export default function CreatorClient({
           {displayedVideos.map((vid, index) => (
             <div key={vid.id || index} className="space-y-4">
               {/* Player / Photo View Container */}
-              <div className="border border-stone-800 rounded-3xl overflow-hidden bg-black p-1 sm:p-2.5 shadow-2xl">
+              <div className="border border-stone-700 hover:border-orange-500/60 rounded-3xl overflow-hidden bg-black p-1 sm:p-2.5 shadow-2xl ring-1 ring-white/10 transition-colors">
                 {vid.type === 'image' ? (
                   <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden flex items-center justify-center select-none">
                     <img
                       src={vid.imageUrl || vid.thumbnailUrl || '/images/v2.png'}
                       alt={vid.title || `${creatorName} photo view`}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain brightness-[1.02]"
                     />
-                    <div className="absolute top-4 right-4 bg-stone-950/85 backdrop-blur-md px-3 py-1.5 rounded-lg border border-orange-500/30 text-[9px] font-mono font-black text-orange-400 uppercase tracking-widest shadow-xl">
+                    <div className="absolute top-4 right-4 bg-stone-900/95 backdrop-blur-md px-3.5 py-1.5 rounded-lg border border-orange-500 text-[10px] font-mono font-black text-orange-400 uppercase tracking-widest shadow-2xl">
                       {videos.length > 1 ? `Photo #${index + 1}` : 'Photo View'}
                     </div>
                   </div>
@@ -292,22 +292,22 @@ export default function CreatorClient({
               </div>
 
               {/* Media Title & Details Bar */}
-              <div className="bg-stone-950 border border-stone-850 rounded-2xl p-4 space-y-3">
+              <div className="bg-[#161616] border border-stone-750 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xl ring-1 ring-white/5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     {videos.length > 1 && (
-                      <span className="text-[10px] font-mono text-orange-400 uppercase tracking-wider block font-bold">
+                      <span className="text-[10px] sm:text-xs font-mono text-orange-400 uppercase tracking-wider block font-black">
                         Media {index + 1} of {videos.length} {vid.type === 'image' ? '• Photo' : '• Video'}
                       </span>
                     )}
-                    <h2 className="text-base sm:text-lg font-black text-white tracking-tight leading-snug mt-0.5">
+                    <h2 className="text-base sm:text-xl font-extrabold text-white tracking-tight leading-snug mt-1">
                       {vid.title || (videos.length > 1 ? `${creatorName} (Part ${index + 1})` : creatorName)}
                     </h2>
                   </div>
                 </div>
 
                 {vid.desc && vid.desc !== bio && (
-                  <p className="text-xs text-stone-400 leading-relaxed bg-stone-900/40 p-3 rounded-xl border border-stone-850">
+                  <p className="text-xs sm:text-sm text-stone-200 leading-relaxed bg-stone-900/90 p-3.5 rounded-xl border border-stone-750 shadow-inner">
                     {vid.desc}
                   </p>
                 )}
@@ -334,8 +334,8 @@ export default function CreatorClient({
         </div>
 
         {/* ── SEO FAQ Section (Google PAA Rich Snippets) ───────────────────────── */}
-        <section className="bg-stone-950 border border-stone-850 rounded-3xl p-5 sm:p-7 space-y-4">
-          <div className="flex items-center gap-2 text-xs font-extrabold text-orange-400 uppercase tracking-widest">
+        <section className="bg-[#141414] border border-stone-750 rounded-3xl p-5 sm:p-7 space-y-4 shadow-xl ring-1 ring-white/10">
+          <div className="flex items-center gap-2 text-xs font-black text-orange-400 uppercase tracking-widest">
             <HelpCircle className="w-4 h-4 text-orange-500" />
             <span>Frequently Asked Questions about {creatorName}</span>
           </div>
@@ -346,21 +346,21 @@ export default function CreatorClient({
               return (
                 <div
                   key={index}
-                  className="border border-stone-850 rounded-2xl overflow-hidden bg-white/[0.01]"
+                  className="border border-stone-750 rounded-2xl overflow-hidden bg-stone-900/90 shadow-sm transition-colors hover:border-stone-650"
                 >
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : index)}
-                    className="w-full p-4 text-left flex items-center justify-between gap-3 text-stone-200 hover:text-orange-400 transition cursor-pointer"
+                    className="w-full p-4 text-left flex items-center justify-between gap-3 text-white hover:text-orange-400 transition cursor-pointer"
                   >
-                    <span className="font-bold text-xs sm:text-sm">{faq.q}</span>
+                    <span className="font-extrabold text-xs sm:text-sm">{faq.q}</span>
                     <ChevronDown
-                      className={`w-4 h-4 text-stone-500 transition-transform ${
+                      className={`w-4 h-4 text-stone-400 transition-transform ${
                         isOpen ? 'rotate-180 text-orange-400' : ''
                       }`}
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-4 pb-4 pt-1 text-xs text-stone-400 leading-relaxed border-t border-stone-850/60 animate-fadeIn">
+                    <div className="px-4 pb-4 pt-1 text-xs text-stone-300 leading-relaxed border-t border-stone-750 animate-fadeIn">
                       {faq.a}
                     </div>
                   )}
@@ -372,8 +372,8 @@ export default function CreatorClient({
 
         {/* ── Internal Linking: Related Viral Trends ───────────────────────────── */}
         {relatedCreators.length > 0 && (
-          <section className="space-y-4 pt-6 border-t border-stone-850">
-            <div className="flex items-center gap-2 text-xs font-extrabold text-stone-300 uppercase tracking-widest">
+          <section className="space-y-4 pt-6 border-t border-stone-750">
+            <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-widest">
               <TrendingUp className="w-4 h-4 text-orange-500" />
               <span>More Viral Trends in Uganda</span>
             </div>
@@ -383,26 +383,26 @@ export default function CreatorClient({
                 <Link
                   key={trend.name}
                   href={`/creator/${encodeURIComponent(trend.name)}`}
-                  className="bg-white/[0.02] hover:bg-white/[0.05] border border-stone-850 hover:border-orange-500/40 rounded-2xl p-3 flex flex-col items-center text-center gap-2.5 transition group"
+                  className="bg-[#151515] hover:bg-[#1c1c1c] border border-stone-750 hover:border-orange-500 rounded-2xl p-3.5 flex flex-col items-center text-center gap-2.5 transition-all shadow-lg shadow-black/60 ring-1 ring-white/10 group active:scale-95"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-stone-900 border border-orange-500/30 overflow-hidden flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="w-14 h-14 rounded-xl bg-black border-2 border-orange-500/50 overflow-hidden flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-md">
                     {trend.thumbnailUrl ? (
                       <img
                         src={trend.thumbnailUrl}
                         alt={trend.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover brightness-[1.02]"
                       />
                     ) : (
-                      <span className="font-black font-mono text-xs text-orange-400">
+                      <span className="font-black font-mono text-sm text-orange-400">
                         {trend.name.slice(0, 2).toUpperCase()}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0 w-full">
-                    <p className="font-bold text-xs text-stone-200 truncate group-hover:text-orange-400 transition-colors">
+                    <p className="font-extrabold text-xs sm:text-sm text-white truncate group-hover:text-orange-400 transition-colors">
                       {trend.name}
                     </p>
-                    <span className="text-[10px] font-mono text-stone-500">
+                    <span className="text-[11px] font-mono text-stone-300 font-bold">
                       {trend.videoCount || 1} Media Files
                     </span>
                   </div>
