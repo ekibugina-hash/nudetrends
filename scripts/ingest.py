@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
-Clean Ingestion Engine for NudeTrends
-Strictly isolates media by leak folder: /nudes/<folder>/
-Ensures no cross-contamination between trends.
+NudeTrends Differential Ingestion & Auto-Sync Engine
+- Checks content present on Nodoleaks vs content on NudeTrends
+- Ignores all content already present on both sites
+- Syncs only new / absent drops (both videos and photos)
+- Maintains strict folder isolation and non-repeating thumbnails
+- Automatically commits and pushes latest edits to GitHub
 """
 
 import os
@@ -11,6 +14,7 @@ import re
 import json
 import time
 import hashlib
+import subprocess
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -20,6 +24,7 @@ API_BASE = os.getenv("API_BASE", "https://nudetrends.afrozex.com").rstrip("/")
 ADMIN_PASSCODE = os.getenv("ADMIN_SECRET", os.getenv("ADMIN_PASSWORD", "Badman256."))
 SOURCE_URL = os.getenv("SOURCE_URL", "https://nodoleaks.com").rstrip("/")
 DRY_RUN = "--dry-run" in sys.argv
+FORCE_PURGE = "--force-purge" in sys.argv or "--purge" in sys.argv
 
 CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seen_cache.json")
 
@@ -58,8 +63,45 @@ def authenticate() -> bool:
         print(f"[!] Authentication notice: {e}")
     return False
 
+def fetch_existing_trends_media() -> dict:
+    """
+    Fetches all current media and topics from NudeTrends.
+    Used to skip any media already present on Trends.
+    """
+    print("[*] Checking content already present on NudeTrends...")
+    existing = {
+        "video_urls": set(),
+        "image_urls": set(),
+        "item_ids": set(),
+        "creators": set(),
+    }
+    try:
+        url = f"{API_BASE}/api/videos"
+        req = urllib.request.Request(url, headers={"User-Agent": HEADERS["User-Agent"]})
+        with urllib.request.urlopen(req, timeout=20) as res:
+            data = json.loads(res.read().decode())
+            media_list = data.get("media", [])
+            for m in media_list:
+                mid = m.get("id")
+                if mid:
+                    existing["item_ids"].add(mid.strip())
+                v_url = m.get("videoUrl")
+                if v_url:
+                    clean_v = v_url.split("#")[0].strip()
+                    existing["video_urls"].add(clean_v)
+                img_url = m.get("imageUrl")
+                if img_url:
+                    existing["image_urls"].add(img_url.strip())
+                creator = m.get("creator")
+                if creator:
+                    existing["creators"].add(creator.strip().lower())
+        print(f"[✓] Found {len(media_list)} media items already live on Trends ({len(existing['video_urls'])} videos, {len(existing['image_urls'])} photos across {len(existing['creators'])} trends).\n")
+    except Exception as e:
+        print(f"[!] Warning: Could not fetch existing media from Trends ({e}). Proceeding carefully.")
+    return existing
+
 def purge_previous_ingested_media():
-    """Removes previously ingested videos that had cross-folder contamination."""
+    """Only called if --force-purge or --purge flag is passed."""
     if DRY_RUN:
         print("[DRY-RUN] Skipping purge.")
         return
@@ -103,7 +145,7 @@ def purge_previous_ingested_media():
                 res_json = json.loads(r.read().decode())
                 if res_json.get("success"):
                     deleted_count += 1
-        except Exception as e:
+        except Exception:
             pass
 
     print(f"[✓] Successfully purged {deleted_count} contaminated items.\n")
@@ -222,20 +264,15 @@ def scrape_isolated_post_media(post_url: str, post_title: str) -> dict:
     for f in all_nude_folders:
         folder_counts[f] = folder_counts.get(f, 0) + 1
 
-    primary_folder = sorted(folder_counts.items(), key=lambda x: -x[1])[0][0]
-
-    # Clean the title
-    h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', html, re.DOTALL)
-    if h1_match:
-        post_title = re.sub(r'<[^>]+>', '', h1_match.group(1)).replace("• Nodo Leaks", "").replace("Nodo Leaks", "").strip()
+    primary_folder = max(folder_counts, key=folder_counts.get)
 
     # STRICT: Only extract videos inside /nudes/<primary_folder>/
-    raw_vids = re.findall(rf'["\'](https?://[^"\']*/nudes/{re.escape(primary_folder)}/[^"\']*\.(?:mp4|m3u8|webm))["\']', html, re.I)
-    videos = list(dict.fromkeys(raw_vids))
+    raw_videos = re.findall(rf'["\'](https?://[^"\']*/nudes/{re.escape(primary_folder)}/[^"\']*\.mp4)["\']', html, re.I)
+    clean_videos = [v.split('&quot;')[0].split('&#x3D;')[0] for v in raw_videos]
+    videos = list(dict.fromkeys(clean_videos))
 
-    # Sort videos by number (1.mp4, 2.mp4, etc.)
-    def sort_num(u):
-        m = re.search(r'/(\d+)\.mp4', u)
+    def sort_num(url: str):
+        m = re.search(r'/(\d+)\.mp4$', url)
         return int(m.group(1)) if m else 999
     videos.sort(key=sort_num)
 
@@ -275,9 +312,68 @@ def scrape_isolated_post_media(post_url: str, post_title: str) -> dict:
         "desc": f"Watch all verified leaked videos and photos of {trend_name}. Full uncut media streaming online."
     }
 
+def push_latest_edits_to_github(new_items_count: int):
+    """
+    Checks for uncommitted local edits (e.g. scripts, caches, data),
+    commits them, and pushes directly to GitHub repository (origin main).
+    """
+    print("\n" + "=" * 65)
+    print("🚀 GITHUB AUTO-SYNC")
+    print("=" * 65)
+    try:
+        # Check if git status has local uncommitted changes
+        status_res = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True
+        )
+        if status_res.returncode != 0:
+            print(f"[!] Git status check failed: {status_res.stderr}")
+            return
+
+        has_changes = bool(status_res.stdout.strip())
+
+        # Check if local commits are ahead of remote
+        ahead_check = subprocess.run(
+            ["git", "status"],
+            capture_output=True,
+            text=True
+        )
+        is_ahead = "ahead of" in ahead_check.stdout
+
+        if not has_changes and not is_ahead:
+            print("[✓] GitHub is already completely up to date with latest edits.")
+            return
+
+        if has_changes:
+            print(f"[*] Staging local changes:\n{status_res.stdout.strip()}")
+            subprocess.run(["git", "add", "."], check=True)
+            time_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+            if new_items_count > 0:
+                commit_msg = f"chore(sync): automated sync {new_items_count} new leaks from nodoleaks ({time_str})"
+            else:
+                commit_msg = f"chore(sync): update sync cache and scripts ({time_str})"
+
+            subprocess.run(["git", "commit", "-m", commit_msg], check=True)
+            print(f"[✓] Created commit: '{commit_msg}'")
+
+        print("[*] Pushing latest edits to GitHub...")
+        push_res = subprocess.run(
+            ["git", "push", "origin", "main"],
+            capture_output=True,
+            text=True
+        )
+        if push_res.returncode == 0:
+            print("[✓] Successfully pushed latest edits to GitHub (origin main)!")
+        else:
+            print(f"[!] Git push notice: {push_res.stderr.strip()}")
+    except Exception as e:
+        print(f"[!] Error during git push: {e}")
+
 def run_isolated_ingestion():
     print("=" * 65)
-    print("🚀 NUDETRENDS STRICT MEDIA ISOLATION INGESTION")
+    print("🚀 NUDETRENDS DIFFERENTIAL SYNC & INGESTION")
+    print(f"[*] Source:     {SOURCE_URL}")
     print(f"[*] Target API: {API_BASE}")
     print(f"[*] Time:       {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 65)
@@ -286,15 +382,20 @@ def run_isolated_ingestion():
         print("[!] Authentication failed.")
         return
 
-    # 1. Purge contaminated data
-    purge_previous_ingested_media()
+    if FORCE_PURGE:
+        purge_previous_ingested_media()
 
-    # 2. Discover posts
+    # 1. Fetch current content on Trends (to diff and skip existing)
+    existing = fetch_existing_trends_media()
+
+    # 2. Discover posts on Nodoleaks
     posts = discover_post_links(SOURCE_URL)
-    print(f"[+] Found {len(posts)} posts to inspect.\n")
+    print(f"[+] Found {len(posts)} posts on Nodoleaks to inspect.\n")
 
-    ingested_trends = 0
-    ingested_media_files = 0
+    synced_trends = 0
+    synced_videos = 0
+    synced_photos = 0
+    skipped_items = 0
     seen_cache = set()
 
     for i, p in enumerate(posts, 1):
@@ -310,22 +411,49 @@ def run_isolated_ingestion():
         total_videos = len(media["videos"])
         total_photos = len(media["photos"])
 
-        print(f"[{i}/{len(posts)}] Trend: \"{trend_name}\" (Folder: {media['folder']})")
-        print(f"      Videos: {total_videos} | Photos: {total_photos}")
-        print(f"      Cover:  {cover_photo}")
-
-        # Publish Creator
-        publish_creator(trend_name, cover_photo, media["desc"])
-        ingested_trends += 1
-
-        # Publish Videos strictly in order (Part 1, Part 2, ...)
-        used_thumbs = set()
+        # Identify which videos are absent on Trends
+        absent_videos = []
         for v_idx, v_url in enumerate(media["videos"]):
+            v_clean = v_url.split('#')[0].strip()
+            v_hash = hashlib.md5(v_url.encode()).hexdigest()[:6]
+            item_id = slugify(f"{trend_name}-v{v_idx + 1}-{v_hash}")
+            if v_clean in existing["video_urls"] or item_id in existing["item_ids"]:
+                skipped_items += 1
+            else:
+                absent_videos.append((v_idx, v_url, item_id))
+
+        # Identify which photos are absent on Trends
+        absent_photos = []
+        for p_idx, p_url in enumerate(media["photos"]):
+            p_clean = p_url.strip()
+            p_hash = hashlib.md5(p_url.encode()).hexdigest()[:6]
+            item_id = slugify(f"{trend_name}-p{p_idx + 1}-{p_hash}")
+            if p_clean in existing["image_urls"] or item_id in existing["item_ids"]:
+                skipped_items += 1
+            else:
+                absent_photos.append((p_idx, p_url, item_id))
+
+        # Check if entire trend is already present
+        if not absent_videos and not absent_photos:
+            print(f"[{i}/{len(posts)}] [=] Trend \"{trend_name}\": All {total_videos} videos and {total_photos} photos already present on Trends. (Ignored)")
+            seen_cache.add(hashlib.md5(post_url.encode()).hexdigest())
+            continue
+
+        print(f"[{i}/{len(posts)}] [+] Trend: \"{trend_name}\" -> NEW CONTENT DETECTED ({len(absent_videos)} new videos, {len(absent_photos)} new photos)")
+
+        # Ensure creator is published if not already configured
+        if trend_name.lower() not in existing["creators"]:
+            publish_creator(trend_name, cover_photo, media["desc"])
+            existing["creators"].add(trend_name.lower())
+            synced_trends += 1
+
+        # Publish only absent videos
+        used_thumbs = set()
+        for v_idx, v_url, item_id in absent_videos:
             part_suffix = f" (Part {v_idx + 1})" if total_videos > 1 else ""
             vid_title = f"{media['title']}{part_suffix}"
-            item_id = slugify(f"{trend_name}-v{v_idx + 1}-{hashlib.md5(v_url.encode()).hexdigest()[:6]}")
 
-            # 1. Match exact video number with photo number in SAME folder (e.g. 1.mp4 -> 1.jpg)
+            # Try to match video number with photo number in SAME folder (e.g. 1.mp4 -> 1.jpg)
             v_num = re.search(r'/(\d+)\.mp4', v_url)
             matched_thumb = ""
             if v_num:
@@ -334,17 +462,14 @@ def run_isolated_ingestion():
                 if matching:
                     matched_thumb = matching[0]
 
-            # 2. If not matched by number, take any other unused photo in this trend's folder
             if not matched_thumb:
                 unused_photos = [ph for ph in media["photos"] if ph not in used_thumbs]
                 if unused_photos:
                     matched_thumb = unused_photos[0]
 
-            # 3. For Part 1 only, if no thumb used yet, use cover photo
             if v_idx == 0 and not matched_thumb and cover_photo not in used_thumbs:
                 matched_thumb = cover_photo
 
-            # Mark this thumb as used so NO OTHER video in this trend repeats it!
             if matched_thumb:
                 used_thumbs.add(matched_thumb)
 
@@ -361,18 +486,19 @@ def run_isolated_ingestion():
                 "desc": media["desc"],
                 "category": "Trending",
                 "interestingTitles": media["tags"],
-                "uploadedAt": int(time.time() * 1000) - (v_idx * 1000) # Keep Part 1 latest
+                "uploadedAt": int(time.time() * 1000) - (v_idx * 1000)
             }
 
-            print(f"      --> Video Part {v_idx + 1}: thumb={matched_thumb.split('/')[-1]}")
+            print(f"      --> [SYNC VIDEO] Part {v_idx + 1}: thumb={matched_thumb.split('/')[-1] if matched_thumb else 'NATIVE'}")
             if publish_video(video_payload):
-                ingested_media_files += 1
+                synced_videos += 1
+                existing["video_urls"].add(v_url.split('#')[0].strip())
+                existing["item_ids"].add(item_id)
 
-        # 2. Publish all photos in order (Photo 1, Photo 2, ...)
-        for p_idx, p_url in enumerate(media["photos"]):
+        # Publish only absent photos
+        for p_idx, p_url, item_id in absent_photos:
             part_suffix = f" (Photo {p_idx + 1})" if total_photos > 1 else " (Photo)"
             photo_title = f"{media['title']}{part_suffix}"
-            item_id = slugify(f"{trend_name}-p{p_idx + 1}-{hashlib.md5(p_url.encode()).hexdigest()[:6]}")
             photo_payload = {
                 "id": item_id,
                 "title": photo_title,
@@ -388,20 +514,27 @@ def run_isolated_ingestion():
                 "interestingTitles": media["tags"],
                 "uploadedAt": int(time.time() * 1000) - ((total_videos + p_idx) * 1000)
             }
-            print(f"      --> Photo {p_idx + 1}: {p_url.split('/')[-1]}")
+            print(f"      --> [SYNC PHOTO] Photo {p_idx + 1}: {p_url.split('/')[-1]}")
             if publish_video(photo_payload):
-                ingested_media_files += 1
+                synced_photos += 1
+                existing["image_urls"].add(p_url.strip())
+                existing["item_ids"].add(item_id)
 
         seen_cache.add(hashlib.md5(post_url.encode()).hexdigest())
-        print("      [✓] Processed successfully.\n")
 
-    # Save clean seen cache
+    # Save cache
     with open(CACHE_FILE, "w", encoding="utf-8") as f:
         json.dump(list(seen_cache), f, indent=2)
 
     print("=" * 65)
-    print(f"🏁 COMPLETED: Published {ingested_trends} strictly isolated trends ({ingested_media_files} files).")
+    print("🏁 DIFFERENTIAL SYNC COMPLETED:")
+    print(f"   * New videos synced:             {synced_videos}")
+    print(f"   * New photos synced:             {synced_photos}")
+    print(f"   * Already present items ignored: {skipped_items}")
     print("=" * 65)
+
+    # Automatically push latest edits and changes to GitHub
+    push_latest_edits_to_github(synced_videos + synced_photos)
 
 if __name__ == "__main__":
     run_isolated_ingestion()
