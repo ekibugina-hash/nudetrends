@@ -211,46 +211,46 @@ function discoverPosts(html, baseUrl) {
 }
 
 function extractMedia(html, postMeta, postUrl) {
-  // 1. Direct videos
-  let videos = [];
-  const sourceMatches = html.matchAll(/<source[^>]+src=["']([^"']+\.(?:mp4|m3u8|webm)[^"']*)["']/gi);
-  for (const m of sourceMatches) videos.push(m[1]);
+  // 1. Find all /nudes/<folder>/ in the page to find the primary folder for this leak
+  const folderMatches = Array.from(html.matchAll(/\/nudes\/([^/"'<>\s]+)\//g)).map((m) => m[1]);
+  if (folderMatches.length === 0) return null;
 
-  if (videos.length === 0) {
-    const videoMatches = html.matchAll(/<video[^>]+src=["']([^"']+\.(?:mp4|m3u8|webm)[^"']*)["']/gi);
-    for (const m of videoMatches) videos.push(m[1]);
-  }
+  const counts = {};
+  for (const f of folderMatches) counts[f] = (counts[f] || 0) + 1;
+  const primaryFolder = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
 
-  if (videos.length === 0) {
-    const m3u8Matches = html.matchAll(/["'](https?:\/\/[^"']+\.(?:mp4|m3u8))["']/gi);
-    for (const m of m3u8Matches) videos.push(m[1]);
-  }
-
-  if (videos.length === 0) {
-    const iframeMatches = html.matchAll(/<iframe[^>]*\bsrc=["']([^"']*(?:embed|player|stream|video)[^"']*)["']/gi);
-    for (const m of iframeMatches) videos.push(m[1]);
-  }
-
+  // 2. STRICT: Only extract videos inside /nudes/<primaryFolder>/
+  const escapedFolder = primaryFolder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const vidRegex = new RegExp(`["'](https?:\/\/[^"']*\/nudes\/${escapedFolder}\/[^"']*\.(?:mp4|m3u8|webm))["']`, 'gi');
+  let videos = Array.from(html.matchAll(vidRegex)).map((m) => m[1]);
   videos = Array.from(new Set(videos));
 
-  // 2. High-res images
-  const imgMatches = html.matchAll(/src=["']([^"']+\.(?:jpg|jpeg|png|webp))["']/gi);
-  const photos = [];
-  for (const m of imgMatches) {
-    const lower = m[1].toLowerCase();
-    if (['logo', 'flag', 'ads', 'icon', 'banner', 'avatar'].some((skip) => lower.includes(skip))) continue;
-    const fullImg = new URL(m[1], postUrl).toString();
-    if (!photos.includes(fullImg)) photos.push(fullImg);
-  }
+  // Sort videos by number (1.mp4, 2.mp4, ...)
+  videos.sort((a, b) => {
+    const ma = a.match(/\/(\d+)\.mp4/);
+    const mb = b.match(/\/(\d+)\.mp4/);
+    return (ma ? parseInt(ma[1], 10) : 999) - (mb ? parseInt(mb[1], 10) : 999);
+  });
+
+  // 3. STRICT: Only extract images inside /nudes/<primaryFolder>/
+  const imgRegex = new RegExp(`["'](https?:\/\/[^"']*\/nudes\/${escapedFolder}\/[^"']*\.(?:jpg|jpeg|webp|png|avif))["']`, 'gi');
+  let photos = Array.from(html.matchAll(imgRegex)).map((m) => m[1].split('&quot;')[0].split('&#x3D;')[0]);
+  photos = Array.from(new Set(photos));
+  photos.sort((a, b) => {
+    const aMain = a.toLowerCase().includes('main') ? 0 : (a.includes('/1.') ? 1 : 2);
+    const bMain = b.toLowerCase().includes('main') ? 0 : (b.includes('/1.') ? 1 : 2);
+    return aMain - bMain;
+  });
 
   if (videos.length === 0 && photos.length === 0) return null;
 
-  const trendName = extractTrendName(postMeta.title, postUrl);
-  const coverPhoto = photos[0] || '/images/v2.png';
+  const trendName = primaryFolder.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const coverPhoto = photos[0] || `https://noodles.nodoleaks.com/nudes/${primaryFolder}/1.jpg`;
 
   return {
     trendName,
     title: postMeta.title,
+    folder: primaryFolder,
     coverPhoto,
     videos,
     photos,
@@ -258,7 +258,6 @@ function extractMedia(html, postMeta, postUrl) {
     desc: `Watch all verified leaked videos and photos of ${trendName}. Full uncut media streaming online.`,
   };
 }
-
 async function run() {
   console.log('='.repeat(65));
   console.log('🚀 NUDETRENDS AUTOMATED INGESTION ENGINE (NODE.JS)');
