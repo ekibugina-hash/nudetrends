@@ -220,96 +220,140 @@ def publish_video(video_data: dict) -> bool:
 def discover_post_links(source_url: str) -> list:
     print(f"[*] Fetching homepage: {source_url} ...")
     html = fetch_url(source_url)
-    if not html:
-        return []
-
     found_urls = []
-    matches = re.findall(r'<a[^>]+class=["\'][^"\']*post-title[^"\']*["\'][^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', html, re.DOTALL)
-    for href, title in matches:
-        full_url = urllib.parse.urljoin(source_url, href)
-        clean_title = re.sub(r"<[^>]+>", "", title).strip()
-        found_urls.append({"url": full_url, "title": clean_title})
 
-    if not found_urls:
+    # 1. First collect all homepage cards (these represent the newest featured trends)
+    if html:
+        matches = re.findall(r'<a[^>]+class=["\'][^"\']*post-title[^"\']*["\'][^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', html, re.DOTALL)
+        for href, title in matches:
+            full_url = urllib.parse.urljoin(source_url, href)
+            clean_title = re.sub(r"<[^>]+>", "", title).strip()
+            found_urls.append({"url": full_url, "title": clean_title})
+
         slugs = re.findall(r'href=["\'](/s/[^"\']+)["\']', html)
         for s in set(slugs):
             full_url = urllib.parse.urljoin(source_url, s)
             raw_title = s.replace("/s/", "").replace("-", " ").title()
             found_urls.append({"url": full_url, "title": raw_title})
 
+    # 2. Discover ALL remaining trend stories across the site via sitemap.xml
+    print(f"[*] Discovering all trends from sitemap: {source_url}/sitemap.xml ...")
+    sitemap_xml = fetch_url(f"{source_url}/sitemap.xml")
+    if sitemap_xml:
+        sitemap_locs = re.findall(r"<loc>(.*?)</loc>", sitemap_xml)
+        for loc in sitemap_locs:
+            loc = loc.strip()
+            # Include all story/trend paths (/s/ and /posts/)
+            if "/s/" in loc or "/posts/" in loc or "/video/" in loc or "/mzansi/" in loc or "/msanzi/" in loc:
+                slug = loc.rstrip("/").split("/")[-1]
+                slug_title = slug.replace("-", " ").replace("_", " ").title()
+                found_urls.append({"url": loc, "title": slug_title})
+
+    # Deduplicate while strictly preserving order (homepage latest first, then full catalog)
     seen_urls = set()
     unique_posts = []
     for p in found_urls:
-        if p["url"] not in seen_urls:
-            seen_urls.add(p["url"])
+        clean_u = p["url"].rstrip("/")
+        if clean_u not in seen_urls:
+            seen_urls.add(clean_u)
             unique_posts.append(p)
 
+    print(f"[✓] Total unique trends discovered across site: {len(unique_posts)}")
     return unique_posts
 
 def scrape_isolated_post_media(post_url: str, post_title: str) -> dict:
     """
-    STRICT SCRAPING:
-    Determines the single primary /nudes/<folder>/ for this post.
+    STRICT SCRAPING ACROSS ENTIRE CATALOG:
+    Determines the single primary folder and media domain for this post.
+    Works for all storage hosts (noodles, clouds, cloudy, cloudx, gainmedia, etc.)
     Filters out ALL media belonging to other folders (related posts, ads, sidebar).
     """
     html = fetch_url(post_url)
     if not html:
         return None
 
-    # Find all /nudes/<folder>/ in the page
-    all_nude_folders = re.findall(r'/nudes/([^/"\'<>\s]+)/', html)
-    if not all_nude_folders:
+    # Title extraction fallback
+    title_m = re.search(r'<title>(.*?)</title>', html, re.I)
+    title = title_m.group(1) if title_m else post_title
+    title = re.sub(r'•\s*Nodo\s*Leaks?', '', title, flags=re.I).strip()
+    title = re.sub(r'\s+', ' ', title) or post_title
+
+    # 1. Look for embedded video sources first
+    video_sources = re.findall(r'<source[^>]+(?:src|data-src)=["\']([^"\']+\.mp4)["\']', html, re.I)
+    if not video_sources:
+        video_sources = re.findall(r'<video[^>]+(?:src|data-src)=["\']([^"\']+\.mp4)["\']', html, re.I)
+    if not video_sources:
+        all_mp4 = re.findall(r'https?://[^"\'<>\s]+\.mp4', html)
+        video_sources = list(dict.fromkeys(all_mp4))
+
+    # Determine primary folder and media host
+    primary_folder = None
+    media_host = None
+
+    if video_sources:
+        first_v = video_sources[0]
+        m = re.search(r'https?://([^/]+)/(?:nudes/)?([^/]+)/[^/]+\.mp4', first_v)
+        if m:
+            media_host = m.group(1)
+            primary_folder = m.group(2)
+
+    if not primary_folder:
+        img_candidates = re.findall(r'https?://([^/]+)/(?:nudes/)?([^/]+)/(?:main|\d+|photo)[^/]*\.(?:jpg|jpeg|webp|png|avif)', html, re.I)
+        valid_imgs = [c for c in img_candidates if 'knack' not in c[0] and 'imgur' not in c[0] and ('nodoleaks' in c[0] or 'cloud' in c[0] or 'noodle' in c[0] or 'gainmedia' in c[0])]
+        if valid_imgs:
+            media_host = valid_imgs[0][0]
+            primary_folder = valid_imgs[0][1]
+
+    # Fallback to /nudes/<folder>/ if present
+    if not primary_folder:
+        all_nude_folders = re.findall(r'/nudes/([^/"\'<>\s]+)/', html)
+        if all_nude_folders:
+            folder_counts = {}
+            for f in all_nude_folders:
+                folder_counts[f] = folder_counts.get(f, 0) + 1
+            primary_folder = max(folder_counts, key=folder_counts.get)
+
+    if not primary_folder:
         return None
 
-    # Count frequencies of each folder to find the primary one of this post
-    folder_counts = {}
-    for f in all_nude_folders:
-        folder_counts[f] = folder_counts.get(f, 0) + 1
+    # Strict isolation: only extract media matching this exact folder
+    matched_videos = [v for v in video_sources if f"/{primary_folder}/" in v]
+    matched_videos = list(dict.fromkeys(matched_videos))
 
-    primary_folder = max(folder_counts, key=folder_counts.get)
+    all_raw_imgs = re.findall(rf'["\'](https?://[^"\']*/{re.escape(primary_folder)}/[^"\']*\.(?:jpg|jpeg|webp|png|avif))["\']', html, re.I)
+    clean_imgs = [i.split('&quot;')[0].split('&#x3D;')[0] for i in all_raw_imgs]
+    matched_photos = list(dict.fromkeys(clean_imgs))
 
-    # STRICT: Only extract videos inside /nudes/<primary_folder>/
-    raw_videos = re.findall(rf'["\'](https?://[^"\']*/nudes/{re.escape(primary_folder)}/[^"\']*\.mp4)["\']', html, re.I)
-    clean_videos = [v.split('&quot;')[0].split('&#x3D;')[0] for v in raw_videos]
-    videos = list(dict.fromkeys(clean_videos))
-
-    def sort_num(url: str):
-        m = re.search(r'/(\d+)\.mp4$', url)
+    def sort_v(v):
+        m = re.search(r'/(\d+)\.mp4$', v)
         return int(m.group(1)) if m else 999
-    videos.sort(key=sort_num)
+    matched_videos.sort(key=sort_v)
 
-    # STRICT: Only extract images inside /nudes/<primary_folder>/
-    raw_imgs = re.findall(rf'["\'](https?://[^"\']*/nudes/{re.escape(primary_folder)}/[^"\']*\.(?:jpg|jpeg|webp|png|avif))["\']', html, re.I)
-    clean_imgs = [i.split('&quot;')[0].split('&#x3D;')[0] for i in raw_imgs]
-    
     def sort_photo_key(p: str):
+        if 'main' in p.lower():
+            return (0, 0)
         m = re.search(r'/(\d+)\.[a-zA-Z0-9]+$', p)
         if m:
-            return (0, int(m.group(1)))
-        if 'main' in p.lower():
-            return (1, 0)
+            return (1, int(m.group(1)))
         return (2, p)
+    matched_photos.sort(key=sort_photo_key)
 
-    photos = list(dict.fromkeys(clean_imgs))
-    photos.sort(key=sort_photo_key)
-
-    if not videos and not photos:
+    if not matched_videos and not matched_photos:
         return None
 
-    # Trend name derived from folder
-    trend_name = " ".join([w.title() for w in primary_folder.replace("-", " ").split()])
+    trend_name = " ".join([w.title() for w in primary_folder.replace("-", " ").replace("_", " ").split()])
 
-    # Cover photo: prefer main.webp/avif if available, otherwise first photo
-    main_photo = next((p for p in photos if 'main' in p.lower()), None)
-    cover_photo = main_photo or (photos[0] if photos else f"https://noodles.nodoleaks.com/nudes/{primary_folder}/1.jpg")
+    cover_photo = (matched_photos[0] if matched_photos else (
+        f"https://{media_host}/nudes/{primary_folder}/1.jpg" if media_host else ""
+    ))
 
     return {
         "trend_name": trend_name,
-        "title": post_title,
+        "title": title or trend_name,
         "folder": primary_folder,
         "cover_photo": cover_photo,
-        "videos": videos,
-        "photos": photos,
+        "videos": matched_videos,
+        "photos": matched_photos,
         "tags": ["#ViralLeaks", "#Kampala", "#Exclusive"],
         "desc": f"Watch all verified leaked videos and photos of {trend_name}. Full uncut media streaming online."
     }
