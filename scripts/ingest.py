@@ -193,8 +193,36 @@ def publish_creator(name: str, thumbnail_url: str, bio: str = "", order: int = N
         print(f"    [!] Error publishing creator '{name}': {e}")
         return False
 
+def is_url_alive(url: str, timeout: int = 5) -> bool:
+    if not url:
+        return False
+    if "nodocloud.herokuapp.com" in url:
+        return False
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": HEADERS["User-Agent"]},
+            method="HEAD"
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as res:
+            return res.status < 400
+    except urllib.error.HTTPError as e:
+        if e.code in (404, 410):
+            return False
+        return True
+    except Exception:
+        return True
+
 def publish_video(video_data: dict) -> bool:
     media_url = video_data.get("videoUrl") or video_data.get("imageUrl") or ""
+    if not is_url_alive(media_url):
+        print(f"    [!] Skipping dead/broken media URL (404): {media_url[:60]}")
+        return False
+
+    thumb_url = video_data.get("thumbnailUrl")
+    if thumb_url and not is_url_alive(thumb_url):
+        video_data["thumbnailUrl"] = ""
+
     if DRY_RUN:
         print(f"    [DRY-RUN] Would publish {video_data.get('type', 'media').upper()}: '{video_data.get('title')}' -> {media_url[:50]}...")
         return True

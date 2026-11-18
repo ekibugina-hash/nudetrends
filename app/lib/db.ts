@@ -234,7 +234,8 @@ async function getMergedVideosUncached(): Promise<Video[]> {
         }
 
         const id = `r2-${encodeURIComponent(key)}`;
-        const publicUrl = `https://${publicDomain}/${key}`;
+        const safeKey = key.split("/").map(encodeURIComponent).join("/");
+        const publicUrl = `https://${publicDomain}/${safeKey}`;
 
         const mediaItem: Video = {
           id,

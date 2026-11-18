@@ -4,6 +4,7 @@ import { PostHogProvider } from "./components/PostHogProvider";
 import { SITE_URL } from "./lib/seo";
 
 export const metadata: Metadata = {
+  referrer: "no-referrer",
   title: "NudeTrends — Premium Trending Videos & Nudes Uganda",
   description: "Watch exclusive trending premium videos and nudes on NudeTrends Uganda. We provide a secure network for the best hot Ugandan girls and top-rated adult leaked content. Browse our updated catalog daily!",
   keywords: [
