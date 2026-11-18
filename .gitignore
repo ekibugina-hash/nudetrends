@@ -13,3 +13,5 @@ next-env.d.ts
 
 # Generated bucket listings and debug output
 r2-files.txt
+__pycache__/
+*.pyc

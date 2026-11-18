@@ -163,9 +163,9 @@ def slugify(text: str) -> str:
     text = re.sub(r"[^\w\s-]", "", text).strip().lower()
     return re.sub(r"[-\s]+", "-", text)[:80]
 
-def publish_creator(name: str, thumbnail_url: str, bio: str = "") -> bool:
+def publish_creator(name: str, thumbnail_url: str, bio: str = "", order: int = None) -> bool:
     if DRY_RUN:
-        print(f"    [DRY-RUN] Trend: '{name}' (thumb: {thumbnail_url[:50]}...)")
+        print(f"    [DRY-RUN] Trend: '{name}' (order: {order}, thumb: {thumbnail_url[:50]}...)")
         return True
 
     url = f"{API_BASE}/api/creators"
@@ -174,6 +174,8 @@ def publish_creator(name: str, thumbnail_url: str, bio: str = "") -> bool:
         "thumbnailUrl": thumbnail_url,
         "bio": bio or f"Stream all verified viral leaks and exclusive media of {name} on NudeTrends Uganda."
     }
+    if order is not None:
+        payload["order"] = order
     headers = {
         "Content-Type": "application/json",
         "User-Agent": HEADERS["User-Agent"],
@@ -441,9 +443,10 @@ def run_isolated_ingestion():
 
         print(f"[{i}/{len(posts)}] [+] Trend: \"{trend_name}\" -> NEW CONTENT DETECTED ({len(absent_videos)} new videos, {len(absent_photos)} new photos)")
 
-        # Ensure creator is published if not already configured
+        # Ensure creator is published with strict Nodoleaks order
+        trend_order = i - 1
+        publish_creator(trend_name, cover_photo, media["desc"], order=trend_order)
         if trend_name.lower() not in existing["creators"]:
-            publish_creator(trend_name, cover_photo, media["desc"])
             existing["creators"].add(trend_name.lower())
             synced_trends += 1
 
@@ -473,6 +476,8 @@ def run_isolated_ingestion():
             if matched_thumb:
                 used_thumbs.add(matched_thumb)
 
+            # Align upload timestamp to match Nodoleaks homepage order (post 1 = newest)
+            base_trend_time = int(time.time() * 1000) - ((i - 1) * 3600000)
             video_payload = {
                 "id": item_id,
                 "title": vid_title,
@@ -486,7 +491,7 @@ def run_isolated_ingestion():
                 "desc": media["desc"],
                 "category": "Trending",
                 "interestingTitles": media["tags"],
-                "uploadedAt": int(time.time() * 1000) - (v_idx * 1000)
+                "uploadedAt": base_trend_time - (v_idx * 1000)
             }
 
             print(f"      --> [SYNC VIDEO] Part {v_idx + 1}: thumb={matched_thumb.split('/')[-1] if matched_thumb else 'NATIVE'}")
@@ -499,6 +504,7 @@ def run_isolated_ingestion():
         for p_idx, p_url, item_id in absent_photos:
             part_suffix = f" (Photo {p_idx + 1})" if total_photos > 1 else " (Photo)"
             photo_title = f"{media['title']}{part_suffix}"
+            base_trend_time = int(time.time() * 1000) - ((i - 1) * 3600000)
             photo_payload = {
                 "id": item_id,
                 "title": photo_title,
@@ -512,7 +518,7 @@ def run_isolated_ingestion():
                 "desc": media["desc"],
                 "category": "Photos",
                 "interestingTitles": media["tags"],
-                "uploadedAt": int(time.time() * 1000) - ((total_videos + p_idx) * 1000)
+                "uploadedAt": base_trend_time - ((total_videos + p_idx) * 1000)
             }
             print(f"      --> [SYNC PHOTO] Photo {p_idx + 1}: {p_url.split('/')[-1]}")
             if publish_video(photo_payload):

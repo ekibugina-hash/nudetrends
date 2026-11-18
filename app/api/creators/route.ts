@@ -16,19 +16,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const { name, thumbnailUrl, bio } = await req.json();
+    const body = await req.json();
+
+    // Support bulk list updates (e.g. reordering all creators)
+    const bulkList = Array.isArray(body) ? body : Array.isArray(body?.creators) ? body.creators : null;
+    if (bulkList) {
+      const success = await writeDb('creators.json', bulkList);
+      if (!success) {
+        return NextResponse.json({ success: false, error: 'Failed to write to DB' }, { status: 500 });
+      }
+      revalidateContent();
+      return NextResponse.json({ success: true, count: bulkList.length });
+    }
+
+    const { name, thumbnailUrl, bio, order } = body;
     if (!name) {
       return NextResponse.json({ success: false, error: 'Name is required' }, { status: 400 });
     }
 
     const creators = await readDb('creators.json');
-    const existingIndex = creators.findIndex((c: any) => c.name === name);
+    const existingIndex = creators.findIndex((c: any) => c.name?.toLowerCase() === name.toLowerCase());
 
     if (existingIndex !== -1) {
       if (thumbnailUrl !== undefined) creators[existingIndex].thumbnailUrl = thumbnailUrl;
       if (bio !== undefined) creators[existingIndex].bio = bio;
+      if (order !== undefined) creators[existingIndex].order = order;
     } else {
-      creators.push({ name, thumbnailUrl, bio });
+      creators.push({ name, thumbnailUrl, bio, ...(order !== undefined ? { order } : {}) });
     }
 
     const success = await writeDb('creators.json', creators);

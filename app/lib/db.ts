@@ -335,8 +335,10 @@ async function getCreatorsUncached(): Promise<Creator[]> {
   const customBios: Record<string, string> = {};
   const configuredNames = new Set<string>();
   
+  const creatorOrder = new Map<string, number>();
+
   if (Array.isArray(dbCreators)) {
-    dbCreators.forEach((c: any) => {
+    dbCreators.forEach((c: any, index: number) => {
       if (c.name) {
         configuredNames.add(c.name);
         if (c.thumbnailUrl) {
@@ -345,6 +347,8 @@ async function getCreatorsUncached(): Promise<Creator[]> {
         if (c.bio) {
           customBios[c.name] = c.bio;
         }
+        const orderVal = typeof c.order === 'number' ? c.order : index;
+        creatorOrder.set(c.name.toLowerCase().trim(), orderVal);
       }
     });
   }
@@ -387,10 +391,20 @@ async function getCreatorsUncached(): Promise<Creator[]> {
         videoCount: videos.length,
         hasVideos: videos.some((v: any) => v.type !== 'image'),
         hasImages: videos.some((v: any) => v.type === 'image'),
+        order: creatorOrder.get(creator.name.toLowerCase().trim()),
         latestUpload,
       };
     })
-    .sort((a, b) => b.latestUpload - a.latestUpload)
+    .sort((a, b) => {
+      const orderA = a.order;
+      const orderB = b.order;
+      if (orderA !== undefined && orderB !== undefined) {
+        return orderA - orderB;
+      }
+      if (orderA !== undefined) return -1;
+      if (orderB !== undefined) return 1;
+      return b.latestUpload - a.latestUpload;
+    })
     .map(({ latestUpload, ...creator }) => creator);
 }
 

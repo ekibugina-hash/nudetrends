@@ -30,6 +30,7 @@ export interface Creator {
   bio?: string;            // Admin configured biography / description
   hasVideos?: boolean;
   hasImages?: boolean;
+  order?: number;
 }
 
 export interface MediaAttachment {
