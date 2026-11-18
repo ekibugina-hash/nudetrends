@@ -327,7 +327,7 @@ export default function HomeClient({
   const [bannerAd, setBannerAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>({
     enabled: true,
     imageUrl: '/images/sponsor-banner.jpg',
-    linkUrl: 'https://www.hexescortsug.com',
+    linkUrl: 'https://ugandasexybabes.afrozex.com',
   });
   const [popupAd, setPopupAd] = useState<{ enabled: boolean; imageUrl: string; linkUrl: string } | null>(null);
   const [showPopupModal, setShowPopupModal] = useState(false);
@@ -601,14 +601,14 @@ export default function HomeClient({
           <div className="w-full max-w-xs sm:max-w-sm mx-auto">
             <div className="relative bg-gradient-to-r from-pink-500/20 via-purple-500/10 to-pink-500/20 p-1 rounded-2xl border border-pink-500/40 shadow-xl overflow-hidden group hover:border-pink-400/70 transition-all duration-300">
               <a
-                href={bannerAd.linkUrl || 'https://www.hexescortsug.com'}
+                href={bannerAd.linkUrl || 'https://ugandasexybabes.afrozex.com'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="relative block w-full aspect-[16/9] rounded-xl overflow-hidden bg-black"
               >
                 <img
                   src={bannerAd.imageUrl}
-                  alt="Hex Escorts UG - www.hexescortsug.com"
+                  alt="Uganda Sexy Babes - ugandasexybabes.afrozex.com"
                   className="w-full h-full object-contain sm:object-cover rounded-xl group-hover:scale-[1.01] transition-transform duration-500"
                 />
 
